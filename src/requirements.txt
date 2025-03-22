@@ -3,6 +3,7 @@ qdrant-client==1.4.0
 
 # Embedding models
 sentence-transformers==2.2.2
+huggingface-hub==0.16.4  # Specific version compatible with sentence-transformers 2.2.2
 torch==2.0.1
 
 # File monitoring

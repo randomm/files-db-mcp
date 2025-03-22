@@ -199,6 +199,7 @@ def create_app(
     async def health():
         """Health check endpoint for container health monitoring"""
         # Check connection to vector DB
+        from fastapi import HTTPException
         try:
             # Basic check to verify Qdrant is accessible
             vector_search.client.get_collections()
@@ -212,10 +213,13 @@ def create_app(
             }
         except Exception as e:
             logger.error(f"Health check failed: {e!s}")
-            return {
-                "status": "unhealthy",
-                "error": f"{e!s}"
-            }, 500
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "status": "unhealthy",
+                    "error": f"{e!s}"
+                }
+            )
 
     @app.post("/mcp")
     async def handle_mcp_command(command: dict):
