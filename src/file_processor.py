@@ -23,7 +23,7 @@ class FileProcessor:
     def __init__(self, vector_search, project_path: str, ignore_patterns: List[str], data_dir: str):
         self.vector_search = vector_search
         self.project_path = Path(project_path)
-        self.ignore_patterns = ignore_patterns
+        self.ignore_patterns = ignore_patterns.copy()  # Create a copy to avoid modifying the original
         self.data_dir = Path(data_dir)
 
         # Indexing state
@@ -34,6 +34,15 @@ class FileProcessor:
 
         # Create data directory if it doesn't exist
         os.makedirs(self.data_dir, exist_ok=True)
+
+        # Add state file to ignore patterns
+        state_file_rel = os.path.relpath(str(self.data_dir / "file_processor_state.json"), self.project_path)
+        if state_file_rel not in self.ignore_patterns:
+            self.ignore_patterns.append(state_file_rel)
+            # Also add a pattern for the directory if it's inside the project
+            state_dir_rel = os.path.relpath(str(self.data_dir), self.project_path)
+            if not state_dir_rel.startswith('..'):
+                self.ignore_patterns.append(f"{state_dir_rel}/**")
 
         # Load last indexed files if available
         self.load_state()
@@ -105,9 +114,20 @@ class FileProcessor:
                 logger.warning(f"File {rel_path} is not accessible")
                 return False
 
-            # TODO: Implement file content extraction and chunking
-            # For now, just add a placeholder record
-            content = "File content placeholder"
+            # Read file content
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                # Skip binary files
+                logger.warning(f"File {rel_path} appears to be binary, skipping content extraction")
+                content = f"[Binary file: {rel_path}]"
+            
+            # Simple content chunking for large files
+            # If content is too large, truncate it to 5000 characters to avoid performance issues
+            if len(content) > 5000:
+                logger.debug(f"File {rel_path} is large ({len(content)} chars), truncating for indexing")
+                content = content[:5000] + f"\n\n[Truncated: file is {len(content)} characters]"
 
             # Add to vector search engine
             self.vector_search.index_file(rel_path, content)
@@ -169,6 +189,12 @@ class FileProcessor:
             # Skip ignored files
             if self.is_ignored(rel_path):
                 return
+                
+            # Skip the state file itself to prevent infinite update loops
+            state_file_path = str(self.data_dir / "file_processor_state.json")
+            if os.path.abspath(file_path) == os.path.abspath(state_file_path):
+                logger.debug(f"Ignoring change to state file: {file_path}")
+                return
 
             logger.info(f"File change detected: {event_type} - {rel_path}")
 
@@ -203,3 +229,10 @@ class FileProcessor:
     def get_total_files(self) -> int:
         """Get total number of files to index"""
         return self.total_files
+        
+    def schedule_indexing(self):
+        """Schedule indexing to run in a background thread"""
+        import threading
+        thread = threading.Thread(target=self.index_files)
+        thread.daemon = True
+        thread.start()

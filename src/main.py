@@ -149,7 +149,7 @@ def create_app(
     file_watcher = FileWatcher(
         project_path=project_path,
         ignore_patterns=ignore_patterns,
-        file_processor=file_processor,
+        on_file_change=lambda event_type, file_path: file_processor.handle_file_change(event_type, file_path),
     )
 
     # Create SSE interface if enabled
