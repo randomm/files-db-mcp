@@ -126,13 +126,39 @@ def create_app(
         version="0.1.0",
     )
 
-    # Create vector search engine
-    vector_search = VectorSearch(
-        host=os.getenv("QDRANT_HOST", "localhost"),
-        port=int(os.getenv("QDRANT_PORT", "6333")),
-        embedding_model=embedding_model,
-        model_config=model_config,
-    )
+    # Create vector search engine with retries for containerized environments
+    max_retries = 5
+    retry_interval = 5  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Connecting to vector database (attempt {attempt+1}/{max_retries})...")
+            
+            vector_db_host = os.getenv("VECTOR_DB_HOST", "localhost")
+            vector_db_port = int(os.getenv("VECTOR_DB_PORT", "6333"))
+            
+            logger.info(f"Vector DB connection: {vector_db_host}:{vector_db_port}")
+            
+            vector_search = VectorSearch(
+                host=vector_db_host,
+                port=vector_db_port,
+                embedding_model=embedding_model,
+                model_config=model_config,
+            )
+            
+            # Test connection by getting collections list
+            vector_search.client.get_collections()
+            logger.info("Successfully connected to vector database")
+            break
+        except Exception as e:
+            logger.warning(f"Failed to connect to vector database: {e!s}")
+            if attempt < max_retries - 1:
+                logger.info(f"Retrying in {retry_interval} seconds...")
+                import time
+                time.sleep(retry_interval)
+            else:
+                logger.error("Failed to connect to vector database after all retries")
+                raise
 
     # Create file processor
     file_processor = FileProcessor(

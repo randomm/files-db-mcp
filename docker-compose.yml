@@ -5,12 +5,8 @@ services:
     image: qdrant/qdrant:latest
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:6333/readiness"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 15s
+    # Disable health check for vector-db as it's a third-party image that doesn't include curl or wget
+    # Instead, we'll validate connection to vector-db from the files-db-mcp service
     ports:
       - "6333:6333"  # For internal communication
 
@@ -20,7 +16,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       vector-db:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ${PROJECT_DIR:-./}:/project:ro  # Mount the project directory read-only
       - app_data:/app/data              # For persistent application data
