@@ -52,29 +52,36 @@ else
     COMPOSE_HTTP_TIMEOUT=300 docker compose up --build -d
 fi
 
-# Wait for services to be healthy
+# Wait for services to start
 echo 
 echo "Files-DB-MCP is starting up..."
-echo "Waiting for services to become healthy..."
+echo "Waiting for services to initialize..."
 
-# Wait up to 2 minutes for services to be healthy
+# Get the actual container names as they might be different
+MCP_CONTAINER=$(docker compose ps -q files-db-mcp)
+VECTOR_DB_CONTAINER=$(docker compose ps -q vector-db)
+
+echo "Container IDs: MCP=$MCP_CONTAINER, Vector DB=$VECTOR_DB_CONTAINER"
+
+# Wait up to 2 minutes for MCP to become healthy
 timeout=120
 interval=5
 elapsed=0
 
+echo "Waiting for MCP service to become healthy..."
 while [ $elapsed -lt $timeout ]; do
-    # Check if vector-db is healthy
-    VECTOR_DB_STATUS=$(docker inspect --format='{{.State.Health.Status}}' files-db-mcp-vector-db-1 2>/dev/null || echo "container not found")
-    
     # Check if files-db-mcp is healthy
-    MCP_STATUS=$(docker inspect --format='{{.State.Health.Status}}' files-db-mcp-files-db-mcp-1 2>/dev/null || echo "container not found")
-    
-    echo -n "Vector DB: $VECTOR_DB_STATUS, MCP: $MCP_STATUS"
-    echo
-    
-    if [ "$VECTOR_DB_STATUS" = "healthy" ] && [ "$MCP_STATUS" = "healthy" ]; then
-        echo "All services are healthy!"
-        break
+    if [ ! -z "$MCP_CONTAINER" ]; then
+        MCP_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}' "$MCP_CONTAINER" 2>/dev/null || echo "error")
+        echo -n "MCP Status: $MCP_STATUS"
+        echo
+        
+        if [ "$MCP_STATUS" = "healthy" ]; then
+            echo "MCP service is healthy!"
+            break
+        fi
+    else
+        echo "MCP container not found"
     fi
     
     sleep $interval
@@ -83,9 +90,9 @@ while [ $elapsed -lt $timeout ]; do
 done
 
 if [ $elapsed -ge $timeout ]; then
-    echo "Timeout waiting for services to become healthy."
-    echo "Check container logs with: docker logs files-db-mcp-vector-db-1"
-    echo "Check container logs with: docker logs files-db-mcp-files-db-mcp-1"
+    echo "Timeout waiting for MCP service to become healthy."
+    echo "Check MCP container logs with: docker logs $MCP_CONTAINER"
+    echo "Check Vector DB container logs with: docker logs $VECTOR_DB_CONTAINER"
     exit 1
 fi
 
