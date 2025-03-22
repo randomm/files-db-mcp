@@ -32,23 +32,69 @@ fi
 # Set environment variables
 export PROJECT_DIR=$PROJECT_DIR
 
-# Run Docker Compose
+# Stop and remove any existing containers from previous runs
+echo "Cleaning up any existing containers..."
+if [ "$SCRIPT_DIR" != "$PROJECT_DIR" ]; then
+    # Using absolute path to docker-compose.yml
+    docker compose -f "$SCRIPT_DIR/docker-compose.yml" down
+else
+    # Running from project directory
+    docker compose down
+fi
+
+# Run Docker Compose with proper timeout for startup
 echo "Starting Docker Compose services..."
 if [ "$SCRIPT_DIR" != "$PROJECT_DIR" ]; then
     # Running from different directory, use absolute path to docker-compose.yml
-    docker compose -f "$SCRIPT_DIR/docker-compose.yml" up --build -d
+    COMPOSE_HTTP_TIMEOUT=300 docker compose -f "$SCRIPT_DIR/docker-compose.yml" up --build -d
 else
     # Running from project directory
-    docker compose up --build -d
+    COMPOSE_HTTP_TIMEOUT=300 docker compose up --build -d
 fi
 
-# Show status
-echo
+# Wait for services to be healthy
+echo 
 echo "Files-DB-MCP is starting up..."
-echo "Indexing will begin automatically in the background."
+echo "Waiting for services to become healthy..."
+
+# Wait up to 2 minutes for services to be healthy
+timeout=120
+interval=5
+elapsed=0
+
+while [ $elapsed -lt $timeout ]; do
+    # Check if vector-db is healthy
+    VECTOR_DB_STATUS=$(docker inspect --format='{{.State.Health.Status}}' files-db-mcp-vector-db-1 2>/dev/null || echo "container not found")
+    
+    # Check if files-db-mcp is healthy
+    MCP_STATUS=$(docker inspect --format='{{.State.Health.Status}}' files-db-mcp-files-db-mcp-1 2>/dev/null || echo "container not found")
+    
+    echo -n "Vector DB: $VECTOR_DB_STATUS, MCP: $MCP_STATUS"
+    echo
+    
+    if [ "$VECTOR_DB_STATUS" = "healthy" ] && [ "$MCP_STATUS" = "healthy" ]; then
+        echo "All services are healthy!"
+        break
+    fi
+    
+    sleep $interval
+    elapsed=$((elapsed + interval))
+    echo -n "."
+done
+
+if [ $elapsed -ge $timeout ]; then
+    echo "Timeout waiting for services to become healthy."
+    echo "Check container logs with: docker logs files-db-mcp-vector-db-1"
+    echo "Check container logs with: docker logs files-db-mcp-files-db-mcp-1"
+    exit 1
+fi
+
+echo
+echo "Files-DB-MCP is ready!"
+echo "Indexing is running in the background."
 echo "You can now connect to the MCP interface at http://localhost:3000"
 echo
-echo "To check indexing status: curl http://localhost:3000/status"
+echo "To check indexing status: curl http://localhost:3000/health"
 echo "To stop the service: docker compose down"
 echo
 echo "Services are running in the background. Happy coding!"

@@ -168,6 +168,28 @@ def create_app(
             "version": "0.1.0",
             "description": "Vector database for code files with MCP interface",
         }
+        
+    @app.get("/health")
+    async def health():
+        """Health check endpoint for container health monitoring"""
+        # Check connection to vector DB
+        try:
+            # Basic check to verify Qdrant is accessible
+            vector_search.client.get_collections()
+            
+            return {
+                "status": "healthy",
+                "vector_db": "connected",
+                "indexed_files": file_processor.get_files_indexed(),
+                "total_files": file_processor.get_total_files(),
+                "indexing_progress": file_processor.get_indexing_progress()
+            }
+        except Exception as e:
+            logger.error(f"Health check failed: {e!s}")
+            return {
+                "status": "unhealthy",
+                "error": f"{e!s}"
+            }, 500
 
     @app.post("/mcp")
     async def handle_mcp_command(command: dict):
@@ -227,8 +249,16 @@ def main():
         disable_sse=args.disable_sse,
     )
 
+    # Get port from environment variable if set, otherwise use args
+    port = int(os.getenv("PORT", args.port))
+    
+    # Log startup information
+    logger.info(f"Starting Files-DB-MCP on {args.host}:{port}")
+    logger.info(f"Project path: {args.project_path}")
+    logger.info(f"Data directory: {args.data_dir}")
+    
     # Run app
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host=args.host, port=port)
 
 
 if __name__ == "__main__":
