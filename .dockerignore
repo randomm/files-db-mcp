@@ -1,0 +1,28 @@
+# Git
+.git
+.github
+.gitignore
+
+# Docker
+.docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Documentation
+README.md
+LICENSE
+docs/
+ai-assist/
+.tasks/
+
+# Development and build files
+.vscode/
+.idea/
+*.log
+*.swp
+*.swo
+
+# Project-specific
+qdrant_data/
+app_data/

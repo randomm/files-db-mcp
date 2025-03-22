@@ -1,0 +1,21 @@
+# Vector database client
+qdrant-client==1.4.0
+
+# Embedding models
+sentence-transformers==2.2.2
+torch==2.0.1
+
+# File monitoring
+watchdog==3.0.0
+
+# MCP interface
+fastapi==0.104.1
+uvicorn==0.23.2
+pydantic==2.4.2
+sse-starlette==1.6.5
+aiohttp==3.8.6
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+numpy==1.24.3
