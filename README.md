@@ -9,6 +9,7 @@ Files-DB-MCP is a local vector database system that provides LLM coding agents w
 - **Real-Time Monitoring**: Continuously watches for file changes and updates the index
 - **Vector Search**: Semantic search capabilities for finding relevant code
 - **MCP Interface**: Compatible with Claude Code, Cursor, and other LLM tools
+- **Direct Claude Code Integration**: MCP implementation for seamless AI interactions
 - **Open Source Models**: Uses Hugging Face models for code embeddings
 - **Optimization Options**: Supports quantization and binary embeddings
 
@@ -85,19 +86,47 @@ Files-DB-MCP implements the Message Control Protocol (MCP) with the following fu
 
 - `search_files`: Search for files by content similarity
 - `get_file_content`: Get the content of a specific file
+- `get_model_info`: Get information about the current embedding model
+
+### Claude Code Integration
+
+Files-DB-MCP now includes direct integration with Claude Code via MCP:
+
+```json
+{
+  "mcpServers": {
+    "files-db-mcp": {
+      "command": "python",
+      "args": ["-m", "src.claude_mcp", "--host", "localhost", "--port", "6333"]
+    }
+  }
+}
+```
+
+For detailed setup instructions, see [Claude MCP Integration](docs/claude_mcp_integration.md).
 
 ## Status and Monitoring
 
 Check indexing status:
 
 ```bash
-curl http://localhost:3000/status
+curl http://localhost:3000/health
 ```
+
+## Documentation
+
+- [Installation Guide](docs/installation_guide.md) - Detailed installation instructions
+- [Docker Setup](docs/docker_setup.md) - Docker Compose setup guide
+- [API Reference](docs/api_reference.md) - Complete API documentation
+- [Claude MCP Integration](docs/claude_mcp_integration.md) - Claude Code integration
+- [Troubleshooting](docs/troubleshooting.md) - Solutions to common issues
+- [Model Configuration](docs/model_configuration.md) - Configure embedding models
+- [SSE API](docs/sse_api.md) - Real-time updates via Server-Sent Events
 
 ## License
 
-[Your License Here]
+[MIT License]
 
 ## Contributing
 
-[Contribution guidelines]
+Contributions are welcome! Please feel free to submit a pull request.
