@@ -5,6 +5,27 @@ Last Updated: 2025-03-22
 ## High Priority
 
 --- 
+id: TASK-016
+type: bugfix
+priority: high
+status: todo
+---
+
+# Fix Docker Compose environment health check issues
+
+## Description
+The Docker Compose setup is currently failing to start properly due to health check issues with the vector-db container. This prevents the entire system from functioning as intended. The issue needs to be fixed to enable the one-command Docker Compose environment as specified in TASK-001.
+
+## Acceptance Criteria
+- [ ] Identify the root cause of the vector-db container health check failure
+- [ ] Update Docker Compose configuration or health check parameters to resolve the issue
+- [ ] Ensure all containers start successfully and pass health checks
+- [ ] Verify the system can be started with a single command
+- [ ] Test that the MCP interface is accessible at the specified port
+- [ ] Confirm that file indexing works correctly in the containerized environment
+- [ ] Update documentation if necessary
+
+--- 
 id: TASK-001
 type: infra
 priority: high
@@ -216,7 +237,7 @@ Extend the system to allow configuration of different open source embedding mode
 id: TASK-013
 type: feature
 priority: medium
-status: in-progress
+status: done
 ---
 
 # Set up comprehensive testing infrastructure
