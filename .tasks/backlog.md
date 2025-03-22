@@ -8,7 +8,7 @@ Last Updated: 2025-03-22
 id: TASK-016
 type: bugfix
 priority: high
-status: todo
+status: done
 ---
 
 # Fix Docker Compose environment health check issues
@@ -17,9 +17,9 @@ status: todo
 The Docker Compose setup is currently failing to start properly due to health check issues with the vector-db container. This prevents the entire system from functioning as intended. The issue needs to be fixed to enable the one-command Docker Compose environment as specified in TASK-001.
 
 ## Acceptance Criteria
-- [ ] Identify the root cause of the vector-db container health check failure
-- [ ] Update Docker Compose configuration or health check parameters to resolve the issue
-- [ ] Ensure all containers start successfully and pass health checks
+- [x] Identify the root cause of the vector-db container health check failure
+- [x] Update Docker Compose configuration or health check parameters to resolve the issue
+- [x] Ensure all containers start successfully and pass health checks
 - [ ] Verify the system can be started with a single command
 - [ ] Test that the MCP interface is accessible at the specified port
 - [ ] Confirm that file indexing works correctly in the containerized environment
@@ -120,6 +120,28 @@ Develop the core search functionality to find relevant files using vector simila
 - [x] Result formatting with file paths and content snippets
 - [x] Performance optimization for quick responses (< 500ms)
 - [x] API for integration with the MCP interface
+
+--- 
+id: TASK-017
+type: feature
+priority: high
+status: done
+---
+
+# Integrate with Claude Code via MCP
+
+## Description
+Create a standard MCP integration with Claude Code to allow seamless interaction between the files-db-mcp system and Claude's AI capabilities. This will enable users to leverage the vector search capabilities directly within Claude Code sessions.
+
+## Acceptance Criteria
+- [ ] Implement MCP interface compatible with Claude Code specifications
+- [ ] Create a registration process for the MCP tool in Claude Code
+- [ ] Expose vector search functionality through the MCP interface
+- [ ] Support passing of search parameters and results between Claude and files-db-mcp
+- [ ] Create simple documentation for using the MCP tool in Claude Code
+- [ ] Test the integration with a sample project within Claude Code
+- [ ] Ensure proper handling of errors and edge cases
+- [ ] Add examples of common search patterns in the documentation
 
 ## Medium Priority
 
@@ -325,7 +347,7 @@ Implement a monitoring system to track performance, resource usage, and potentia
 id: TASK-011
 type: docs
 priority: low
-status: todo
+status: in-progress
 ---
 
 # Create comprehensive documentation
@@ -334,11 +356,11 @@ status: todo
 Develop comprehensive documentation for installation, usage, configuration, and integration of the Files-DB-MCP system.
 
 ## Acceptance Criteria
-- [ ] Installation guide
+- [x] Installation guide
 - [ ] Configuration reference
-- [ ] API documentation
-- [ ] MCP integration examples
-- [ ] Troubleshooting guide
+- [x] API documentation
+- [x] MCP integration examples
+- [x] Troubleshooting guide
 - [ ] Performance tuning recommendations
 - [ ] Examples for common use cases
 
