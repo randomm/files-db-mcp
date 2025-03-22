@@ -15,7 +15,7 @@ COPY src/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY src/ .
+COPY src/ ./src/
 
 # Create necessary directories
 RUN mkdir -p /app/data
@@ -29,4 +29,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # Command to run when container starts
-CMD ["python", "main.py"]
+CMD ["python", "-m", "src.main"]
