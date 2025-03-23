@@ -106,6 +106,12 @@ def parse_args():
         action="store_true",
         help="Enable debug mode",
     )
+    
+    parser.add_argument(
+        "--force-reindex",
+        action="store_true",
+        help="Force a full re-index of all files (disable incremental indexing)",
+    )
 
     return parser.parse_args()
 
@@ -117,6 +123,7 @@ def create_app(
     embedding_model: str,
     model_config: Optional[Dict[str, Any]] = None,
     disable_sse: bool = False,
+    force_reindex: bool = False,
 ) -> FastAPI:
     """Create FastAPI application with all components"""
     # Create FastAPI app
@@ -168,8 +175,8 @@ def create_app(
         data_dir=data_dir,
     )
 
-    # Create MCP interface
-    mcp_interface = MCPInterface(vector_search=vector_search)
+    # Create MCP interface with file processor for reindexing control
+    mcp_interface = MCPInterface(vector_search=vector_search, file_processor=file_processor)
 
     # Create file watcher
     file_watcher = FileWatcher(
@@ -245,7 +252,8 @@ def create_app(
         file_watcher.start()
 
         # Start initial indexing in background
-        file_processor.schedule_indexing()
+        # Use incremental indexing unless force_reindex is specified
+        file_processor.schedule_indexing(incremental=not force_reindex)
 
     @app.on_event("shutdown")
     async def shutdown():
@@ -277,6 +285,7 @@ def main():
         embedding_model=args.embedding_model,
         model_config=model_config,
         disable_sse=args.disable_sse,
+        force_reindex=args.force_reindex,
     )
 
     # Get port from environment variable if set, otherwise use args

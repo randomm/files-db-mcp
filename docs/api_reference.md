@@ -142,6 +142,67 @@ Get information about the current embedding model.
 }
 ```
 
+#### `trigger_reindex`
+
+Trigger a reindexing of files.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| incremental | boolean | No | Whether to use incremental indexing (default: true) |
+
+**Example:**
+
+```json
+{
+  "function": "trigger_reindex",
+  "parameters": {
+    "incremental": false
+  },
+  "request_id": "reindex-request-1"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Started full reindexing",
+  "request_id": "reindex-request-1"
+}
+```
+
+#### `get_indexing_status`
+
+Get current indexing status.
+
+**Parameters:** None
+
+**Example:**
+
+```json
+{
+  "function": "get_indexing_status",
+  "parameters": {},
+  "request_id": "status-request-1"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "is_complete": true,
+  "progress": 100.0,
+  "files_indexed": 1250,
+  "total_files": 1250,
+  "request_id": "status-request-1"
+}
+```
+
 ### MCP Resources
 
 MCP resources provide access to additional information about the vector search system.

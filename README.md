@@ -7,6 +7,7 @@ Files-DB-MCP is a local vector database system that provides LLM coding agents w
 - **One-Command Startup**: Easy to run in any project directory
 - **Zero Configuration**: Auto-detects project structure with sensible defaults
 - **Real-Time Monitoring**: Continuously watches for file changes and updates the index
+- **Incremental Indexing**: Efficiently processes only modified files for faster startups
 - **Vector Search**: Semantic search capabilities for finding relevant code
 - **MCP Interface**: Compatible with Claude Code, Cursor, and other LLM tools
 - **Direct Claude Code Integration**: MCP implementation for seamless AI interactions
@@ -61,6 +62,7 @@ Files-DB-MCP works without configuration, but you can customize it by setting en
 - `QUANTIZATION`: Enable/disable quantization (default: 'true')
 - `BINARY_EMBEDDINGS`: Enable/disable binary embeddings (default: 'false')
 - `IGNORE_PATTERNS`: Comma-separated list of files/dirs to ignore
+- `FORCE_REINDEX`: Force a full reindex instead of incremental (default: 'false')
 
 Example with custom settings:
 
@@ -119,6 +121,7 @@ curl http://localhost:3000/health
 - [Docker Setup](docs/docker_setup.md) - Docker Compose setup guide
 - [API Reference](docs/api_reference.md) - Complete API documentation
 - [Claude MCP Integration](docs/claude_mcp_integration.md) - Claude Code integration
+- [Incremental Indexing](docs/incremental_indexing.md) - Efficient file processing
 - [Troubleshooting](docs/troubleshooting.md) - Solutions to common issues
 - [Model Configuration](docs/model_configuration.md) - Configure embedding models
 - [SSE API](docs/sse_api.md) - Real-time updates via Server-Sent Events

@@ -102,3 +102,4 @@ The following environment variables can be set to customize the Docker setup:
 | DEBUG | Enable debug mode | true |
 | IGNORE_PATTERNS | Patterns to ignore during indexing | .git,node_modules,__pycache__,venv,dist,build,*.pyc,.files-db-mcp |
 | PORT | Port for the MCP interface | 8000 |
+| FORCE_REINDEX | Force a full reindex instead of incremental | false |

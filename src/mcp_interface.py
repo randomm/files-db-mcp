@@ -14,8 +14,9 @@ class MCPInterface:
     Implements the Message Control Protocol for communication with clients
     """
 
-    def __init__(self, vector_search):
+    def __init__(self, vector_search, file_processor=None):
         self.vector_search = vector_search
+        self.file_processor = file_processor  # Add reference to file processor
         self.functions = self._register_functions()
 
     def _register_functions(self) -> Dict[str, callable]:
@@ -25,6 +26,8 @@ class MCPInterface:
             "get_file_content": self.get_file_content,
             "get_model_info": self.get_model_info,
             "change_model": self.change_model,
+            "trigger_reindex": self.trigger_reindex,
+            "get_indexing_status": self.get_indexing_status,
         }
 
     def get_model_info(self) -> Dict[str, Any]:
@@ -138,6 +141,72 @@ class MCPInterface:
                 "error": f"{e}",
             }
 
+    def trigger_reindex(self, incremental: bool = True) -> Dict[str, Any]:
+        """
+        Trigger a reindexing of files
+        
+        Args:
+            incremental: Whether to use incremental indexing (default: True)
+            
+        Returns:
+            Status of the operation
+        """
+        try:
+            if not self.file_processor:
+                return {
+                    "success": False,
+                    "error": "File processor not available",
+                }
+                
+            # Check if indexing is already in progress
+            if self.file_processor.is_indexing_complete():
+                # If indexing is not in progress, start a new indexing process
+                self.file_processor.schedule_indexing(incremental=incremental)
+                return {
+                    "success": True,
+                    "message": f"Started {'incremental' if incremental else 'full'} reindexing",
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Indexing already in progress",
+                    "progress": self.file_processor.get_indexing_progress(),
+                }
+        except Exception as e:
+            logger.error(f"Error in trigger_reindex: {e!s}")
+            return {
+                "success": False, 
+                "error": f"{e}"
+            }
+            
+    def get_indexing_status(self) -> Dict[str, Any]:
+        """
+        Get current indexing status
+        
+        Returns:
+            Indexing status information
+        """
+        try:
+            if not self.file_processor:
+                return {
+                    "success": False,
+                    "error": "File processor not available",
+                }
+                
+            return {
+                "success": True,
+                "is_complete": self.file_processor.is_indexing_complete(),
+                "progress": self.file_processor.get_indexing_progress(),
+                "files_indexed": self.file_processor.get_files_indexed(),
+                "total_files": self.file_processor.get_total_files(),
+            }
+        except Exception as e:
+            logger.error(f"Error in get_indexing_status: {e!s}")
+            return {
+                "success": False,
+                "error": f"{e}",
+            }
+            
     def get_file_content(self, file_path: str) -> Dict[str, Any]:
         """
         Get the content of a specific file

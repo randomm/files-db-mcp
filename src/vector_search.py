@@ -61,15 +61,15 @@ class VectorSearch:
         # Apply model configuration if provided
         device = self.model_config.get("device", None)  # Get device from config or use default
 
-        # Handle custom configurations like quantization
-        if self.quantization and "quantization" not in self.model_config:
-            self.model_config["quantization"] = "int8"
+        # Filter out invalid parameters for SentenceTransformer
+        valid_params = {k: v for k, v in self.model_config.items() 
+                       if k not in ["device", "quantization", "binary_embeddings"]}
 
         # Load model with appropriate configuration
         return SentenceTransformer(
             model_name,
             device=device,
-            **{k: v for k, v in self.model_config.items() if k not in ["device"]},
+            **valid_params,
         )
 
     def _initialize_collection(self):
@@ -140,9 +140,17 @@ class VectorSearch:
             show_progress_bar=False,
         ).tolist()
 
-    def index_file(self, file_path: str, content: str) -> bool:
+    def index_file(self, file_path: str, content: str, additional_metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
         Index file content in the vector database
+        
+        Args:
+            file_path: Relative path to the file
+            content: File content to index
+            additional_metadata: Optional additional metadata to store with the document
+            
+        Returns:
+            True if indexing was successful, False otherwise
         """
         try:
             # Get file extension for filtering
@@ -156,6 +164,24 @@ class VectorSearch:
             import hashlib
 
             point_id = hashlib.md5(file_path.encode()).hexdigest()
+            
+            # Create the payload with standard metadata
+            payload = {
+                "file_path": file_path,
+                "file_type": file_type,
+                "content": content,  # Store content for retrieval
+                "indexed_at": time.time(),
+            }
+            
+            # Add additional metadata if provided
+            if additional_metadata:
+                # Avoid overwriting standard fields
+                for key, value in additional_metadata.items():
+                    if key not in payload:
+                        payload[key] = value
+                    else:
+                        # If it's a standard field, store it with a prefix
+                        payload[f"meta_{key}"] = value
 
             # Upsert point into collection
             self.client.upsert(
@@ -164,12 +190,7 @@ class VectorSearch:
                     models.PointStruct(
                         id=point_id,
                         vector=embedding,
-                        payload={
-                            "file_path": file_path,
-                            "file_type": file_type,
-                            "content": content,  # Store content for retrieval
-                            "indexed_at": time.time(),
-                        },
+                        payload=payload,
                     )
                 ],
             )
