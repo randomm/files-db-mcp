@@ -25,8 +25,10 @@ The Docker Compose installation is the simplest and most reliable way to run Fil
 ### Quick Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/randomm/files-db-mcp.git
+# Clone the repository (using SSH, recommended if you have SSH keys set up)
+git clone git@github.com:randomm/files-db-mcp.git
+# Or using HTTPS
+# git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Start the services
@@ -57,8 +59,10 @@ Files-DB-MCP can be installed as a global CLI tool for easy access from any proj
 # Install the latest stable version
 pip install files-db-mcp
 
-# Or install the development version
+# Or install the development version (HTTPS)
 pip install git+https://github.com/randomm/files-db-mcp.git
+# Or if you prefer SSH
+# pip install git+ssh://git@github.com/randomm/files-db-mcp.git
 ```
 
 ### Usage
@@ -96,8 +100,10 @@ Options:
 For advanced users who want to install from source:
 
 ```bash
-# Clone the repository
-git clone https://github.com/randomm/files-db-mcp.git
+# Clone the repository (using SSH, recommended if you have SSH keys set up)
+git clone git@github.com:randomm/files-db-mcp.git
+# Or using HTTPS
+# git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Create and activate a virtual environment
@@ -116,8 +122,10 @@ python -m src.main
 For developers who want to contribute to Files-DB-MCP:
 
 ```bash
-# Clone the repository
-git clone https://github.com/randomm/files-db-mcp.git
+# Clone the repository (using SSH, recommended if you have SSH keys set up)
+git clone git@github.com:randomm/files-db-mcp.git
+# Or using HTTPS
+# git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Create and activate a virtual environment
