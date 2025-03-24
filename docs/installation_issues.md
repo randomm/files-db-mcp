@@ -1,6 +1,6 @@
 # Installation Issues Tracker
 
-## TASK-021: Fix installation script paths
+## TASK-021: Fix installation script paths [RESOLVED]
 
 ### Description
 The installation process is failing when users try to run the `files-db-mcp` command. The script is unable to find the docker-compose.yml file at the expected location.
@@ -29,11 +29,22 @@ The command should start the files-db-mcp service without errors.
 ### Root Cause
 After the repository reorganization (TASK-019 and TASK-020), the paths in the installation scripts weren't properly updated to reflect the new file structure.
 
-### Priority
-High - This affects all new users trying to use the tool.
+### Fix Implemented
+1. Added a fallback mechanism in `scripts/run.sh` to check for docker-compose.yml in the base directory and the `.files-db-mcp` directory
+2. Modified the installation script to copy docker-compose.yml to the scripts directory
+3. Updated troubleshooting documentation with a manual fix for existing installations
 
-### Assigned to
+### Verification
+The fix has been tested with a fresh installation and works correctly. Existing installations can be fixed by manually copying the docker-compose.yml file to the scripts directory:
+```bash
+cp ~/.files-db-mcp/docker-compose.yml ~/.files-db-mcp/scripts/
+```
+
+### Status
+RESOLVED
+
+### Resolved by
 Claude
 
-### Due Date
-ASAP
+### Resolution Date
+March 24, 2025

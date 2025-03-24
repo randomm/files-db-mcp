@@ -121,6 +121,9 @@ chmod +x "$INSTALL_DIR/files-db-mcp"
 # Create symlinks for convenience if needed
 ln -sf "$INSTALL_DIR/scripts/run.sh" "$INSTALL_DIR/run.sh"
 
+# Fix a potential path issue - copy docker-compose.yml to root directory for easier access
+cp "$INSTALL_DIR/docker-compose.yml" "$INSTALL_DIR/scripts/" 2>/dev/null || true
+
 echo
 echo "Installation complete!"
 echo

@@ -256,6 +256,17 @@ This guide helps you diagnose and solve common issues with Files-DB-MCP.
 
 ## Common Error Messages
 
+### "open /Users/janni/.files-db-mcp/scripts/docker-compose.yml: no such file or directory"
+
+**Cause:** Path issue in the installation script after repository reorganization
+
+**Solution:**
+- Update to the latest version of Files-DB-MCP
+- If issue persists, manually copy docker-compose.yml to the scripts directory:
+  ```bash
+  cp ~/.files-db-mcp/docker-compose.yml ~/.files-db-mcp/scripts/
+  ```
+
 ### "ImportError: cannot import name 'cached_download' from 'huggingface_hub'"
 
 **Cause:** Version incompatibility between sentence-transformers and huggingface-hub

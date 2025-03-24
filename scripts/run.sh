@@ -45,6 +45,23 @@ else
     docker compose down
 fi
 
+# Check if docker-compose.yml exists in the base directory
+if [ ! -f "$BASE_DIR/docker-compose.yml" ]; then
+    echo "Error: docker-compose.yml not found at $BASE_DIR/docker-compose.yml"
+    echo "This usually happens when the installation paths are incorrect."
+    
+    # Check the common installation directory
+    if [ -f "$HOME/.files-db-mcp/docker-compose.yml" ]; then
+        echo "Found docker-compose.yml in the default installation directory."
+        BASE_DIR="$HOME/.files-db-mcp"
+        echo "Using $BASE_DIR as the base directory."
+    else
+        echo "Could not find docker-compose.yml in the expected locations."
+        echo "Please make sure files-db-mcp is properly installed."
+        exit 1
+    fi
+fi
+
 # Run Docker Compose with proper timeout for startup
 echo "Starting Docker Compose services..."
 # Use the docker-compose.yml from the base directory
