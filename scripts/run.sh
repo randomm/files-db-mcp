@@ -73,8 +73,8 @@ echo "Files-DB-MCP is starting up..."
 echo "Waiting for services to initialize..."
 
 # Get the actual container names as they might be different
-MCP_CONTAINER=$(docker compose ps -q files-db-mcp)
-VECTOR_DB_CONTAINER=$(docker compose ps -q vector-db)
+MCP_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q files-db-mcp)
+VECTOR_DB_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q vector-db)
 
 echo "Container IDs: MCP=$MCP_CONTAINER, Vector DB=$VECTOR_DB_CONTAINER"
 

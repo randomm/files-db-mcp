@@ -4,5 +4,19 @@
 # Get the script directory (where this script is located)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Execute the run script
-exec "$SCRIPT_DIR/scripts/run.sh" "$@"
+# Check if the local run script exists
+if [ -f "$SCRIPT_DIR/scripts/run.sh" ]; then
+    # Execute the run script
+    exec "$SCRIPT_DIR/scripts/run.sh" "$@"
+else
+    # Check if installed in default location
+    if [ -f "$HOME/.files-db-mcp/scripts/run.sh" ]; then
+        echo "Using installed scripts from $HOME/.files-db-mcp"
+        exec "$HOME/.files-db-mcp/scripts/run.sh" "$@"
+    else
+        echo "Error: Cannot find run.sh script"
+        echo "Please reinstall files-db-mcp:"
+        echo "curl -fsSL https://raw.githubusercontent.com/randomm/files-db-mcp/main/install/install.sh | bash"
+        exit 1
+    fi
+fi
