@@ -71,6 +71,8 @@ COMPOSE_HTTP_TIMEOUT=300 docker compose -f "$BASE_DIR/docker-compose.yml" up --b
 echo 
 echo "Files-DB-MCP is starting up..."
 echo "Waiting for services to initialize..."
+echo "Note: First run requires downloading embedding models (~300-500MB) which may take several minutes."
+echo "      Future startups will be much faster as models are cached."
 
 # Get the actual container names as they might be different
 MCP_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q files-db-mcp)
@@ -78,18 +80,26 @@ VECTOR_DB_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q vec
 
 echo "Container IDs: MCP=$MCP_CONTAINER, Vector DB=$VECTOR_DB_CONTAINER"
 
-# Wait up to 2 minutes for MCP to become healthy
-timeout=120
-interval=5
+# Wait up to 10 minutes for MCP to become healthy (model downloads can take time)
+timeout=600
+interval=10
 elapsed=0
 
 echo "Waiting for MCP service to become healthy..."
 while [ $elapsed -lt $timeout ]; do
-    # Check if files-db-mcp is healthy
+    # Check if files-db-mcp is healthy and fetch logs to parse model download progress
     if [ ! -z "$MCP_CONTAINER" ]; then
         MCP_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}' "$MCP_CONTAINER" 2>/dev/null || echo "error")
         echo -n "MCP Status: $MCP_STATUS"
         echo
+        
+        # Check for model downloading in logs
+        MODEL_DOWNLOAD=$(docker logs --tail 20 "$MCP_CONTAINER" 2>&1 | grep -E "Downloading.*model.*:|Downloading.*model.*%")
+        if [ ! -z "$MODEL_DOWNLOAD" ]; then
+            echo "==== Model download in progress ===="
+            docker logs --tail 10 "$MCP_CONTAINER" 2>&1 | grep -E "Downloading.*%|Loading embedding model" | tail -n 3
+            echo "==================================="
+        fi
         
         if [ "$MCP_STATUS" = "healthy" ]; then
             echo "MCP service is healthy!"
@@ -101,7 +111,7 @@ while [ $elapsed -lt $timeout ]; do
     
     sleep $interval
     elapsed=$((elapsed + interval))
-    echo -n "."
+    # Don't print dots as they're not informative
 done
 
 if [ $elapsed -ge $timeout ]; then
