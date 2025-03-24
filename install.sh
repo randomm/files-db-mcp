@@ -106,30 +106,17 @@ else
     fi
 fi
 
-# Create alias in ~/.bashrc or ~/.zshrc
-SHELL_RC=""
-if [ -f "$HOME/.zshrc" ]; then
-    SHELL_RC="$HOME/.zshrc"
-elif [ -f "$HOME/.bashrc" ]; then
-    SHELL_RC="$HOME/.bashrc"
-fi
-
-if [ -n "$SHELL_RC" ]; then
-    echo "Adding alias to $SHELL_RC..."
-    
-    # Remove old alias if it exists
-    sed -i.bak '/alias files-db-mcp=/d' "$SHELL_RC"
-    
-    # Add new alias
-    echo "alias files-db-mcp='$INSTALL_DIR/run.sh'" >> "$SHELL_RC"
-    
-    echo "Alias added. You can now use 'files-db-mcp' command in any project directory."
-    echo "Please restart your shell or run 'source $SHELL_RC' to use the command."
-else
-    echo "Could not find .zshrc or .bashrc to add alias."
-    echo "To use Files-DB-MCP, run:"
-    echo "  $INSTALL_DIR/run.sh"
-fi
+# Suggest how to add alias
+echo "To add a convenient alias for Files-DB-MCP, add the following line to your shell profile:"
+echo
+echo "  alias files-db-mcp='$INSTALL_DIR/run.sh'"
+echo
+echo "For example, in ~/.bashrc, ~/.zshrc, or your preferred shell configuration file."
+echo "After adding the alias, run 'source ~/.bashrc' (or your shell config file) to activate it."
+echo
+echo "Alternatively, you can run Files-DB-MCP directly with:"
+echo "  $INSTALL_DIR/run.sh"
+echo
 
 # Make scripts executable
 chmod +x "$INSTALL_DIR/run.sh"
