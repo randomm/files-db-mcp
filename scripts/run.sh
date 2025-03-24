@@ -32,11 +32,14 @@ fi
 # Set environment variables
 export PROJECT_DIR=$PROJECT_DIR
 
+# Get the repository base directory
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Stop and remove any existing containers from previous runs
 echo "Cleaning up any existing containers..."
-if [ "$SCRIPT_DIR" != "$PROJECT_DIR" ]; then
+if [ "$PROJECT_DIR" != "$BASE_DIR" ]; then
     # Using absolute path to docker-compose.yml
-    docker compose -f "$SCRIPT_DIR/docker-compose.yml" down
+    docker compose -f "$BASE_DIR/docker-compose.yml" down
 else
     # Running from project directory
     docker compose down
@@ -44,8 +47,6 @@ fi
 
 # Run Docker Compose with proper timeout for startup
 echo "Starting Docker Compose services..."
-# Get the base directory (parent of scripts)
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
 # Use the docker-compose.yml from the base directory
 COMPOSE_HTTP_TIMEOUT=300 docker compose -f "$BASE_DIR/docker-compose.yml" up --build -d
 

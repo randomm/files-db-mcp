@@ -106,17 +106,20 @@ fi
 # Suggest how to add alias
 echo "To add a convenient alias for Files-DB-MCP, add the following line to your shell profile:"
 echo
-echo "  alias files-db-mcp='$INSTALL_DIR/run.sh'"
+echo "  alias files-db-mcp='$INSTALL_DIR/files-db-mcp'"
 echo
 echo "For example, in ~/.bashrc, ~/.zshrc, or your preferred shell configuration file."
 echo "After adding the alias, run 'source ~/.bashrc' (or your shell config file) to activate it."
 echo
 echo "Alternatively, you can run Files-DB-MCP directly with:"
-echo "  $INSTALL_DIR/run.sh"
+echo "  $INSTALL_DIR/files-db-mcp"
 echo
 
 # Make scripts executable
-chmod +x "$INSTALL_DIR/run.sh"
+chmod +x "$INSTALL_DIR/scripts/run.sh"
+chmod +x "$INSTALL_DIR/files-db-mcp"
+# Create symlinks for convenience if needed
+ln -sf "$INSTALL_DIR/scripts/run.sh" "$INSTALL_DIR/run.sh"
 
 echo
 echo "Installation complete!"

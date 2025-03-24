@@ -12,8 +12,20 @@ A local vector database system that provides LLM coding agents with fast, effici
 
 ## Installation
 
+### Option 1: Clone and Setup (Recommended)
+
 ```bash
-git clone git@github.com:randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/setup.sh
+# Using SSH (recommended if you have SSH keys set up with GitHub)
+git clone git@github.com:randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/install/setup.sh
+
+# Using HTTPS (if you don't have SSH keys set up)
+git clone https://github.com/randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/install/setup.sh
+```
+
+### Option 2: Automated Installation Script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/randomm/files-db-mcp/main/install/install.sh | bash
 ```
 
 ## Usage

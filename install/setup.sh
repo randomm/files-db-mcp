@@ -35,27 +35,28 @@ if ! docker compose version >/dev/null 2>&1; then
     fi
 fi
 
-# Determine installation directory - use directory of this script
+# Determine installation directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
 INSTALL_DIR="$HOME/.files-db-mcp"
 
 # Suggest how to add alias
 echo "To add a convenient alias for Files-DB-MCP, add the following line to your shell profile:"
 echo
-echo "  alias files-db-mcp='$SCRIPT_DIR/files-db-mcp'"
+echo "  alias files-db-mcp='$BASE_DIR/files-db-mcp'"
 echo
 echo "For example, in ~/.bashrc, ~/.zshrc, or your preferred shell configuration file."
 echo "After adding the alias, run 'source ~/.bashrc' (or your shell config file) to activate it."
 echo
 echo "Alternatively, you can run Files-DB-MCP directly with:"
-echo "  $SCRIPT_DIR/files-db-mcp"
+echo "  $BASE_DIR/files-db-mcp"
 echo
 
 # Make scripts executable
-chmod +x "$SCRIPT_DIR/scripts/run.sh"
-chmod +x "$SCRIPT_DIR/files-db-mcp"
+chmod +x "$BASE_DIR/scripts/run.sh"
+chmod +x "$BASE_DIR/files-db-mcp"
 # Create symlinks for convenience if needed
-ln -sf "$SCRIPT_DIR/scripts/run.sh" "$SCRIPT_DIR/run.sh"
+ln -sf "$BASE_DIR/scripts/run.sh" "$BASE_DIR/run.sh"
 
 echo
 echo "Setup complete!"
