@@ -1,1 +1,1 @@
-scripts/run.sh
+/Users/janni/git/files-db-mcp/scripts/run.sh
