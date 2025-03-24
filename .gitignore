@@ -30,6 +30,18 @@ app_data/
 # Logs
 logs/
 *.log
+server.log
+
+# Test and coverage reports
+.coverage
+coverage.xml
+coverage_html/
+test-coverage-message.txt
+htmlcov/
+
+# Local development
+.cursor/
+.files-db-mcp/
 
 # OS specific
 .DS_Store

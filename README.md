@@ -110,7 +110,7 @@ Files-DB-MCP now includes direct integration with Claude Code via MCP:
   "mcpServers": {
     "files-db-mcp": {
       "command": "python",
-      "args": ["-m", "src.claude_mcp", "--host", "localhost", "--port", "6333"]
+      "args": ["/path/to/src/claude_mcp_server.py", "--host", "localhost", "--port", "6333"]
     }
   }
 }
@@ -126,6 +126,20 @@ Check indexing status:
 curl http://localhost:3000/health
 ```
 
+## Repository Structure
+
+Files-DB-MCP follows a clean, organized directory structure:
+
+- `/src` - Source code for the application
+- `/tests` - Unit and integration tests
+- `/docs` - Documentation files
+- `/scripts` - Utility scripts
+- `/ai-assist` - LLM assistance prompts and templates
+- `/.tasks` - Task tracking and planning
+- `/config` - Configuration files
+
+Root directory contains only essential files like README.md, Docker configuration, and installation scripts.
+
 ## Documentation
 
 - [Installation Guide](docs/installation_guide.md) - Detailed installation instructions
@@ -136,6 +150,7 @@ curl http://localhost:3000/health
 - [Troubleshooting](docs/troubleshooting.md) - Solutions to common issues
 - [Model Configuration](docs/model_configuration.md) - Configure embedding models
 - [SSE API](docs/sse_api.md) - Real-time updates via Server-Sent Events
+- [Project Structure](docs/project_structure.md) - Repository organization
 
 ## License
 

@@ -28,7 +28,7 @@ Add the following to your `claude_desktop_config.json` file:
   "mcpServers": {
     "files-db-mcp": {
       "command": "python",
-      "args": ["-m", "src.claude_mcp", "--host", "localhost", "--port", "6333"]
+      "args": ["/path/to/src/claude_mcp_server.py", "--host", "localhost", "--port", "6333"]
     }
   }
 }
@@ -45,7 +45,7 @@ If you're using Claude Code CLI, add the following to your configuration:
   "mcpTools": [
     {
       "name": "files-db-mcp",
-      "command": "python -m src.claude_mcp --host localhost --port 6333"
+      "command": "python /path/to/src/claude_mcp_server.py --host localhost --port 6333"
     }
   ]
 }

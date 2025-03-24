@@ -1,8 +1,31 @@
 # Project Backlog: Files-DB-MCP
 
-Last Updated: 2025-03-23
+Last Updated: 2025-03-24
 
 ## High Priority
+
+--- 
+id: TASK-019
+type: cleanup
+priority: high
+status: done
+---
+
+# Repository Structure Cleanup and Organization
+
+## Description
+The repository root directory contains numerous files that need to be properly organized, moved to appropriate locations, or removed if unnecessary. This creates maintenance challenges, makes the repository harder to navigate, and can cause confusion for new contributors. A comprehensive cleanup was needed to ensure a clean, organized repository structure that follows best practices.
+
+## Acceptance Criteria
+- [x] Audit all files in the repository root directory
+- [x] Categorize each file as essential, movable, temporary, or obsolete
+- [x] Move configuration files to a `config` directory where appropriate
+- [x] Ensure all temporary files are properly added to .gitignore
+- [x] Consolidate test-related files to the `tests` directory
+- [x] Move scripts to the `scripts` directory
+- [x] Update documentation to reflect the new structure
+- [x] Ensure no functionality is broken by the reorganization
+- [x] Create a clear README section on repository structure
 
 --- 
 id: TASK-018
