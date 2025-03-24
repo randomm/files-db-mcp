@@ -74,8 +74,13 @@ def test_vector_search_initialization(mock_sentence_transformer, mock_qdrant_cli
         model_config={"device": "cpu"},
     )
 
-    # Check that the model was loaded with some parameters
-    mock_sentence_transformer.assert_called_once()
+    # Check that the model was loaded with the correct parameters
+    # SentenceTransformer should only be called with model name and device
+    mock_sentence_transformer.assert_called_once_with("test_model", device="cpu")
+
+    # Check that normalize_embeddings was properly extracted from model_config
+    assert hasattr(vs, "normalize_embeddings")
+    assert vs.normalize_embeddings is True  # Default value
 
     # Check that the client was created
     mock_qdrant_client.assert_called_once_with(host="localhost", port=6333)
@@ -83,6 +88,47 @@ def test_vector_search_initialization(mock_sentence_transformer, mock_qdrant_cli
     # Check that the collection was initialized
     vs.client.get_collections.assert_called_once()
     vs.client.create_collection.assert_called_once()
+    
+def test_vector_search_initialization_with_custom_settings(mock_sentence_transformer, mock_qdrant_client):
+    """Test VectorSearch initialization with custom settings"""
+    # Create a VectorSearch instance with custom model_config
+    vs = VectorSearch(
+        host="localhost",
+        port=6333,
+        embedding_model="test_model",
+        model_config={
+            "device": "cuda:0",
+            "cache_folder": "/tmp/cache",
+            "normalize_embeddings": False,
+            "prompt_template": "Code: {text}",
+            "invalid_param": "should_be_ignored"
+        },
+    )
+
+    # Check that the model was loaded with ONLY the valid parameters
+    # Only model_name, device, and cache_folder should be passed to the constructor
+    mock_sentence_transformer.assert_called_once_with(
+        "test_model", 
+        device="cuda:0",
+        cache_folder="/tmp/cache"
+    )
+    
+    # Check that normalize_embeddings was properly extracted from model_config
+    assert vs.normalize_embeddings is False
+    
+    # Test with normalize_embeddings explicitly included in model_config
+    mock_sentence_transformer.reset_mock()
+    
+    vs2 = VectorSearch(
+        host="localhost",
+        port=6333,
+        embedding_model="test_model",
+        model_config={"normalize_embeddings": False},
+    )
+    
+    # normalize_embeddings should NOT be passed to the constructor
+    mock_sentence_transformer.assert_called_once_with("test_model", device=None)
+    assert vs2.normalize_embeddings is False
 
 
 def test_generate_embedding(mock_sentence_transformer, mock_qdrant_client):
@@ -98,17 +144,32 @@ def test_generate_embedding(mock_sentence_transformer, mock_qdrant_client):
     # Generate an embedding
     embedding = vs._generate_embedding("test text")
 
-    # Check that the prompt template was applied
+    # Check that the prompt template was applied and normalize_embeddings was correctly passed
     vs.model.encode.assert_called_once_with(
         "query: test text",
         batch_size=32,
-        normalize_embeddings=True,
+        normalize_embeddings=True,  # This should match the value in model_config
         convert_to_tensor=False,
         show_progress_bar=False,
     )
 
     # Check that the embedding was converted to a list
     assert isinstance(embedding, list)
+    
+    # Test with normalize_embeddings set to False
+    vs.model.encode.reset_mock()
+    vs.normalize_embeddings = False
+    
+    embedding = vs._generate_embedding("test text")
+    
+    # Check that normalize_embeddings=False was passed to encode
+    vs.model.encode.assert_called_once_with(
+        "query: test text",
+        batch_size=32,
+        normalize_embeddings=False,  # Should use instance variable
+        convert_to_tensor=False,
+        show_progress_bar=False,
+    )
 
 
 def test_index_file(mock_sentence_transformer, mock_qdrant_client):
