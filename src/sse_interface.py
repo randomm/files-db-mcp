@@ -75,8 +75,13 @@ class SSEInterface:
         # Register router with app
         self.app.include_router(self.router, prefix="/sse", tags=["sse"])
 
-        # Start background task for indexing progress updates
-        self._progress_task = asyncio.create_task(self._indexing_progress_task())
+        # Store coroutine for later execution when asyncio loop is running
+        self._progress_task = None
+        
+        # Start background task on startup
+        @app.on_event("startup")
+        async def start_background_tasks():
+            self._progress_task = asyncio.create_task(self._indexing_progress_task())
 
     def setup_routes(self):
         """Set up SSE routes"""

@@ -11,7 +11,7 @@ services:
   files-db-mcp:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     depends_on:
       vector-db:
         condition: service_started

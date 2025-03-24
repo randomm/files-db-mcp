@@ -41,9 +41,24 @@ def mock_vector_search():
 
 
 @pytest.fixture
-def mcp_interface(mock_vector_search):
-    """Create an MCP interface with a mock vector search engine"""
-    return MCPInterface(mock_vector_search)
+def mock_file_processor():
+    """Create a mock file processor"""
+    mock = MagicMock()
+    
+    # Set up mock methods
+    mock.is_indexing_complete.return_value = True
+    mock.get_indexing_progress.return_value = 100.0
+    mock.get_files_indexed.return_value = 150
+    mock.get_total_files.return_value = 200
+    mock.schedule_indexing.return_value = None
+    
+    return mock
+
+
+@pytest.fixture
+def mcp_interface(mock_vector_search, mock_file_processor):
+    """Create an MCP interface with mock dependencies"""
+    return MCPInterface(vector_search=mock_vector_search, file_processor=mock_file_processor)
 
 
 def test_register_functions(mcp_interface):
@@ -54,6 +69,8 @@ def test_register_functions(mcp_interface):
     assert "get_file_content" in functions
     assert "get_model_info" in functions
     assert "change_model" in functions
+    assert "trigger_reindex" in functions
+    assert "get_indexing_status" in functions
 
 
 def test_search_files(mcp_interface, mock_vector_search):
@@ -188,3 +205,74 @@ def test_handle_command_invalid_json(mcp_interface):
     # Check result
     assert result_dict["success"] is False
     assert "error" in result_dict
+
+
+def test_trigger_reindex(mcp_interface, mock_file_processor):
+    """Test trigger_reindex method"""
+    # Test with incremental indexing
+    result = mcp_interface.trigger_reindex(incremental=True)
+    
+    # Check file processor method calls
+    mock_file_processor.is_indexing_complete.assert_called_once()
+    mock_file_processor.schedule_indexing.assert_called_once_with(incremental=True)
+    
+    # Check result
+    assert result["success"] is True
+    assert "Started incremental reindexing" in result["message"]
+    
+    # Reset mocks for next test
+    mock_file_processor.is_indexing_complete.reset_mock()
+    mock_file_processor.schedule_indexing.reset_mock()
+    
+    # Test with full reindexing
+    result = mcp_interface.trigger_reindex(incremental=False)
+    
+    # Check file processor method calls
+    mock_file_processor.is_indexing_complete.assert_called_once()
+    mock_file_processor.schedule_indexing.assert_called_once_with(incremental=False)
+    
+    # Check result
+    assert result["success"] is True
+    assert "Started full reindexing" in result["message"]
+    
+    # Test when indexing is already in progress
+    mock_file_processor.is_indexing_complete.reset_mock()
+    mock_file_processor.schedule_indexing.reset_mock()
+    mock_file_processor.is_indexing_complete.return_value = False
+    mock_file_processor.get_indexing_progress.return_value = 45.0
+    
+    result = mcp_interface.trigger_reindex()
+    
+    # Check result (should indicate indexing is already in progress)
+    assert result["success"] is False
+    assert "Indexing already in progress" in result["error"]
+    assert result["progress"] == 45.0
+    
+    # Check that schedule_indexing was not called
+    mock_file_processor.schedule_indexing.assert_not_called()
+
+
+def test_get_indexing_status(mcp_interface, mock_file_processor):
+    """Test get_indexing_status method"""
+    result = mcp_interface.get_indexing_status()
+    
+    # Check file processor method calls
+    mock_file_processor.is_indexing_complete.assert_called_once()
+    mock_file_processor.get_indexing_progress.assert_called_once()
+    mock_file_processor.get_files_indexed.assert_called_once()
+    mock_file_processor.get_total_files.assert_called_once()
+    
+    # Check result
+    assert result["success"] is True
+    assert result["is_complete"] is True
+    assert result["progress"] == 100.0
+    assert result["files_indexed"] == 150
+    assert result["total_files"] == 200
+    
+    # Test with no file processor
+    mcp_without_processor = MCPInterface(vector_search=MagicMock(), file_processor=None)
+    result = mcp_without_processor.get_indexing_status()
+    
+    # Check result
+    assert result["success"] is False
+    assert "File processor not available" in result["error"]

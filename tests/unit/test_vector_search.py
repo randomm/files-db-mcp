@@ -120,7 +120,7 @@ def test_index_file(mock_sentence_transformer, mock_qdrant_client):
     with patch.object(
         vs, "_generate_embedding", return_value=[0.1, 0.2, 0.3, 0.4]
     ) as mock_generate:
-        # Index a file
+        # Index a file with no additional metadata
         result = vs.index_file("/test/file.py", "test content")
 
         # Check that _generate_embedding was called
@@ -129,6 +129,41 @@ def test_index_file(mock_sentence_transformer, mock_qdrant_client):
         # Check that upsert was called
         vs.client.upsert.assert_called_once()
 
+        # Check result
+        assert result is True
+        
+        # Reset mocks
+        mock_generate.reset_mock()
+        vs.client.upsert.reset_mock()
+        
+        # Test with additional metadata
+        additional_metadata = {
+            "mtime": 12345.6789,
+            "size": 1024,
+            "hash": "test_hash_digest",
+            "indexed_at": 9876543.21,
+        }
+        
+        result = vs.index_file("/test/file2.py", "content with metadata", additional_metadata)
+        
+        # Check that _generate_embedding was called
+        mock_generate.assert_called_once_with("content with metadata")
+        
+        # Check that upsert was called with the right parameters
+        vs.client.upsert.assert_called_once()
+        
+        # Get the payload from the upsert call
+        upsert_args = vs.client.upsert.call_args[1]
+        points = upsert_args["points"]
+        payload = points[0].payload
+        
+        # Verify metadata was included in payload
+        assert payload["file_path"] == "/test/file2.py"
+        assert payload["content"] == "content with metadata"
+        assert payload["mtime"] == 12345.6789
+        assert payload["size"] == 1024
+        assert payload["hash"] == "test_hash_digest"
+        
         # Check result
         assert result is True
 

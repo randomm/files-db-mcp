@@ -34,14 +34,19 @@ server.log
 
 # Test and coverage reports
 .coverage
+.coverage.*
 coverage.xml
 coverage_html/
 test-coverage-message.txt
 htmlcov/
+.pytest_cache/
+pytest_cache/
 
 # Local development
 .cursor/
 .files-db-mcp/
+.ruff_cache/
+.mypy_cache/
 
 # OS specific
 .DS_Store

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Primary execution script for Files-DB-MCP
+
+# Get the script directory (where this script is located)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Execute the run script
+exec "$SCRIPT_DIR/scripts/run.sh" "$@"

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  vector-db:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  files-db-mcp:
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    depends_on:
+      vector-db:
+        condition: service_healthy
+    environment:
+      - VECTOR_DB_HOST=vector-db
+      - VECTOR_DB_PORT=6333
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - QUANTIZATION=true
+      - BINARY_EMBEDDINGS=false
+      - DEBUG=false
+      - PROJECT_PATH=/test-project
+      - IGNORE_PATTERNS=.git,node_modules,__pycache__,venv,dist,build,*.pyc
+    volumes:
+      - ./tests/fixtures/project:/test-project:ro
+      - app_data:/app/data
+
+  tests:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile.test
+    depends_on:
+      files-db-mcp:
+        condition: service_healthy
+    environment:
+      - VECTOR_DB_HOST=vector-db
+      - VECTOR_DB_PORT=6333
+      - MCP_HOST=files-db-mcp
+      - MCP_PORT=3000
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./coverage:/app/coverage
+    command: ["pytest", "--cov=src", "--cov-report=xml:/app/coverage/coverage.xml"]
+
+volumes:
+  qdrant_data:
+  app_data:

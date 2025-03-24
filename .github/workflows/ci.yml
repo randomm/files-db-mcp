@@ -40,7 +40,7 @@ jobs:
         
       - name: Run CI tests
         run: |
-          docker-compose -f docker-compose.ci.yml up --build --exit-code-from tests
+          docker-compose -f .docker/docker-compose.ci.yml up --build --exit-code-from tests
           
       - name: Upload coverage reports
         uses: actions/upload-artifact@v3
