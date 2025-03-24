@@ -4,7 +4,9 @@ MCP (Message Control Protocol) interface for communication with client tools
 
 import json
 import logging
+import os
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 logger = logging.getLogger("files-db-mcp.mcp_interface")
 
@@ -18,6 +20,8 @@ class MCPInterface:
         self.vector_search = vector_search
         self.file_processor = file_processor  # Add reference to file processor
         self.functions = self._register_functions()
+        self.project_path = Path(getattr(file_processor, 'project_path', os.getcwd()))
+        self.data_dir = Path(getattr(file_processor, 'data_dir', Path(os.getcwd()) / '.files-db-mcp'))
 
     def _register_functions(self) -> Dict[str, callable]:
         """Register available MCP functions"""
@@ -28,6 +32,9 @@ class MCPInterface:
             "change_model": self.change_model,
             "trigger_reindex": self.trigger_reindex,
             "get_indexing_status": self.get_indexing_status,
+            "get_project_config": self.get_project_config,
+            "detect_project_type": self.detect_project_type,
+            "update_project_config": self.update_project_config,
         }
 
     def get_model_info(self) -> Dict[str, Any]:
@@ -315,3 +322,179 @@ class MCPInterface:
                     "error": f"{e}",
                 }
             )
+    
+    def get_project_config(self) -> Dict[str, Any]:
+        """
+        Get current project configuration
+        
+        Returns:
+            Project configuration information
+        """
+        try:
+            from src.project_initializer import ProjectInitializer
+            
+            # Initialize project initializer with current paths
+            initializer = ProjectInitializer(
+                project_path=self.project_path,
+                data_dir=self.data_dir
+            )
+            
+            # Load existing configuration if available
+            config = initializer.load_config()
+            
+            if not config:
+                return {
+                    "success": False,
+                    "error": "No project configuration found",
+                    "message": "Run detect_project_type to create a configuration"
+                }
+                
+            return {
+                "success": True,
+                "config": config
+            }
+        except Exception as e:
+            logger.error(f"Error in get_project_config: {e!s}")
+            return {
+                "success": False,
+                "error": f"{e}",
+            }
+    
+    def detect_project_type(self, force_redetect: bool = False) -> Dict[str, Any]:
+        """
+        Detect project type and generate configuration
+        
+        Args:
+            force_redetect: Whether to force redetection even if configuration exists
+            
+        Returns:
+            Project type detection results
+        """
+        try:
+            from src.project_initializer import ProjectInitializer
+            
+            # Initialize project initializer with current paths
+            initializer = ProjectInitializer(
+                project_path=self.project_path,
+                data_dir=self.data_dir
+            )
+            
+            # Check if configuration already exists
+            config_file = self.data_dir / "config.json"
+            if config_file.exists() and not force_redetect:
+                config = initializer.load_config()
+                return {
+                    "success": True,
+                    "message": "Using existing configuration",
+                    "config": config,
+                }
+            
+            # Run project initialization with auto-detection
+            config = initializer.initialize_project()
+            
+            return {
+                "success": True,
+                "message": "Project type detection completed",
+                "detected_types": config["project_types"],
+                "primary_type": config["primary_project_type"],
+                "embedding_model": config["embedding_model"],
+                "ignore_patterns": config["ignore_patterns"],
+                "config": initializer.load_config(),  # Load the saved configuration
+            }
+        except Exception as e:
+            logger.error(f"Error in detect_project_type: {e!s}")
+            return {
+                "success": False,
+                "error": f"{e}",
+            }
+    
+    def update_project_config(
+        self, 
+        embedding_model: Optional[str] = None,
+        model_config: Optional[Dict[str, Any]] = None,
+        custom_ignore_patterns: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update project configuration
+        
+        Args:
+            embedding_model: Optional new embedding model to use
+            model_config: Optional new model configuration
+            custom_ignore_patterns: Optional custom ignore patterns to add
+            
+        Returns:
+            Updated configuration
+        """
+        try:
+            from src.project_initializer import ProjectInitializer
+            
+            # Initialize project initializer with current paths
+            initializer = ProjectInitializer(
+                project_path=self.project_path,
+                data_dir=self.data_dir
+            )
+            
+            # Load existing configuration
+            config = initializer.load_config()
+            if not config:
+                return {
+                    "success": False,
+                    "error": "No configuration found to update",
+                    "message": "Run detect_project_type first"
+                }
+            
+            # Update configuration
+            if embedding_model:
+                config["embedding_model"] = embedding_model
+                initializer.embedding_model = embedding_model
+            
+            if model_config:
+                if "model_config" not in config:
+                    config["model_config"] = {}
+                config["model_config"].update(model_config)
+                initializer.model_config = config["model_config"]
+            
+            if custom_ignore_patterns:
+                if "custom_ignore_patterns" not in config:
+                    config["custom_ignore_patterns"] = []
+                # Add new patterns, avoiding duplicates
+                existing_patterns = set(config["custom_ignore_patterns"])
+                for pattern in custom_ignore_patterns:
+                    if pattern not in existing_patterns:
+                        config["custom_ignore_patterns"].append(pattern)
+                initializer.custom_ignore_patterns = config["custom_ignore_patterns"]
+            
+            # Save updated configuration
+            config_file = self.data_dir / "config.json"
+            with open(config_file, "w") as f:
+                json.dump(config, f, indent=2)
+            
+            # Restart the indexing with the new configuration if embedding model changed
+            changed_embedding = embedding_model is not None
+            changed_model_config = model_config is not None
+            
+            if (changed_embedding or changed_model_config) and self.vector_search:
+                # Get the current model from config
+                current_model = config.get("embedding_model", initializer.embedding_model)
+                current_config = config.get("model_config", initializer.model_config)
+                
+                # Change the model
+                self.vector_search.change_model(current_model, current_config)
+                
+                # Trigger reindexing if model changed
+                if self.file_processor:
+                    self.file_processor.schedule_indexing(incremental=False)
+                    logger.info(f"Triggered reindexing with new embedding model: {current_model}")
+            
+            return {
+                "success": True,
+                "message": "Configuration updated successfully",
+                "config": config,
+                "reindexing_started": changed_embedding or changed_model_config,
+            }
+        except Exception as e:
+            logger.error(f"Error in update_project_config: {e!s}")
+            return {
+                "success": False,
+                "error": f"{e}",
+            }

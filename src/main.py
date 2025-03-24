@@ -16,6 +16,7 @@ from src.file_watcher import FileWatcher
 from src.mcp_interface import MCPInterface
 from src.sse_interface import SSEInterface
 from src.vector_search import VectorSearch
+from src.project_initializer import ProjectInitializer
 
 # Configure logging
 logging.basicConfig(
@@ -84,8 +85,8 @@ def parse_args():
     parser.add_argument(
         "--embedding-model",
         type=str,
-        default="sentence-transformers/all-MiniLM-L6-v2",
-        help="Embedding model to use (default: all-MiniLM-L6-v2)",
+        default=None,
+        help="Embedding model to use (overrides auto-detection if specified)",
     )
 
     parser.add_argument(
@@ -112,6 +113,12 @@ def parse_args():
         action="store_true",
         help="Force a full re-index of all files (disable incremental indexing)",
     )
+    
+    parser.add_argument(
+        "--disable-auto-config",
+        action="store_true",
+        help="Disable automatic project configuration detection",
+    )
 
     return parser.parse_args()
 
@@ -120,10 +127,11 @@ def create_app(
     project_path: str,
     data_dir: str,
     ignore_patterns: list,
-    embedding_model: str,
+    embedding_model: Optional[str],
     model_config: Optional[Dict[str, Any]] = None,
     disable_sse: bool = False,
     force_reindex: bool = False,
+    disable_auto_config: bool = False,
 ) -> FastAPI:
     """Create FastAPI application with all components"""
     # Create FastAPI app
@@ -132,6 +140,41 @@ def create_app(
         description="Vector database for code files with MCP interface",
         version="0.1.0",
     )
+    
+    # Initialize project with auto-detection if enabled
+    if not disable_auto_config:
+        logger.info("Auto-configuration enabled, detecting project settings...")
+        initializer = ProjectInitializer(project_path, data_dir)
+        config = initializer.initialize_project()
+        
+        # Use auto-detected values unless overridden by command line arguments
+        if embedding_model is None:
+            embedding_model = config["embedding_model"]
+            logger.info(f"Using auto-detected embedding model: {embedding_model}")
+        else:
+            logger.info(f"Using command-line specified embedding model: {embedding_model}")
+            
+        # Merge model configs, with command line taking precedence
+        auto_model_config = config["model_config"]
+        if model_config:
+            auto_model_config.update(model_config)
+        model_config = auto_model_config
+        
+        # Combine ignore patterns, with command line patterns taking precedence
+        auto_ignore_patterns = config["ignore_patterns"]
+        # Only use auto-detected patterns if no command line patterns were specified explicitly
+        if ignore_patterns == [
+            ".git", "node_modules", "__pycache__", "*.pyc", 
+            "*.pyo", ".DS_Store", ".idea", ".vscode"
+        ]:
+            ignore_patterns = auto_ignore_patterns
+        
+        logger.info(f"Project initialization complete. Detected type: {config['primary_project_type']}")
+    else:
+        # If auto-detection is disabled, use the default embedding model if none specified
+        if embedding_model is None:
+            embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
+            logger.info(f"Using default embedding model: {embedding_model}")
 
     # Create vector search engine with retries for containerized environments
     max_retries = 5
@@ -275,7 +318,9 @@ def main():
     # Parse model config
     import json
 
-    model_config = json.loads(args.model_config)
+    model_config = None
+    if args.model_config and args.model_config != "{}":
+        model_config = json.loads(args.model_config)
 
     # Create app
     app = create_app(
@@ -286,6 +331,7 @@ def main():
         model_config=model_config,
         disable_sse=args.disable_sse,
         force_reindex=args.force_reindex,
+        disable_auto_config=args.disable_auto_config,
     )
 
     # Get port from environment variable if set, otherwise use args
