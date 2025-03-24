@@ -36,6 +36,10 @@ class VectorSearch:
         self.binary_embeddings = binary_embeddings
         self.collection_name = collection_name
         self.model_config = model_config or {}
+        
+        # Store normalize_embeddings setting to use during encoding
+        # Default to True if not specified in model_config
+        self.normalize_embeddings = self.model_config.get("normalize_embeddings", True)
 
         # Connect to Qdrant
         self.client = QdrantClient(host=host, port=port)
@@ -61,10 +65,12 @@ class VectorSearch:
         # Apply model configuration if provided
         device = self.model_config.get("device", None)  # Get device from config or use default
 
-        # Filter out invalid parameters for SentenceTransformer
-        valid_params = {k: v for k, v in self.model_config.items() 
-                       if k not in ["device", "quantization", "binary_embeddings"]}
-
+        # Extract valid parameters for SentenceTransformer constructor
+        # Only 'device' and 'cache_folder' are valid for the constructor
+        valid_params = {}
+        if 'cache_folder' in self.model_config:
+            valid_params['cache_folder'] = self.model_config['cache_folder']
+            
         # Load model with appropriate configuration
         return SentenceTransformer(
             model_name,
@@ -130,12 +136,11 @@ class VectorSearch:
         if prompt_template:
             text = prompt_template.format(text=text)
 
-        # Use appropriate encoding parameters based on model configuration
-        normalize = self.model_config.get("normalize_embeddings", True)
+        # Use the normalize_embeddings setting we saved during model initialization
         embedding = self.model.encode(
             text,
             batch_size=batch_size,
-            normalize_embeddings=normalize,
+            normalize_embeddings=self.normalize_embeddings,
             convert_to_tensor=False,
             show_progress_bar=False,
         )
