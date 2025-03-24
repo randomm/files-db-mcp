@@ -10,6 +10,9 @@ echo "  Files-DB-MCP - Vector Search for Code Projects  "
 echo "=================================================="
 echo "             Installation Script                   "
 echo "=================================================="
+echo "NOTE: For SSH authentication, use the following command instead:"
+echo "git clone git@github.com:randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/setup.sh"
+echo "=================================================="
 echo
 
 # Check if Docker and Docker Compose are installed

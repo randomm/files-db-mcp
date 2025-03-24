@@ -18,14 +18,20 @@ Files-DB-MCP is a local vector database system that provides LLM coding agents w
 
 ### One-Line Installation
 
+For SSH authentication (recommended if you use SSH keys with GitHub):
+```bash
+git clone git@github.com:randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/setup.sh
+```
+
+For HTTPS authentication:
+```bash
+git clone https://github.com/randomm/files-db-mcp.git ~/.files-db-mcp && bash ~/.files-db-mcp/setup.sh
+```
+
+Or download with curl (may require GitHub credentials):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/randomm/files-db-mcp/main/install.sh | bash
 ```
-
-The installation script automatically:
-- Tries to use SSH for GitHub authentication if available
-- Falls back to HTTPS if SSH is not set up
-- Provides a ZIP download option if git is not installed
 
 ### Usage
 
