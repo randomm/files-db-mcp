@@ -254,13 +254,30 @@ def create_app(
             # Basic check to verify Qdrant is accessible
             vector_search.client.get_collections()
             
-            return {
+            # Get current embedding model info
+            model_info = {
+                "model_name": vector_search.model_name,
+                "vector_size": vector_search.vector_size
+            }
+            
+            # Extended health information
+            status_info = {
                 "status": "healthy",
                 "vector_db": "connected",
                 "indexed_files": file_processor.get_files_indexed(),
                 "total_files": file_processor.get_total_files(),
-                "indexing_progress": file_processor.get_indexing_progress()
+                "indexing_progress": file_processor.get_indexing_progress(),
+                "model_info": model_info,
+                "is_indexing": file_processor.indexing_in_progress
             }
+            
+            # Add performance metrics if available
+            if hasattr(file_processor, "last_batch_speed"):
+                status_info["indexing_speed"] = {
+                    "files_per_second": file_processor.last_batch_speed
+                }
+                
+            return status_info
         except Exception as e:
             logger.error(f"Health check failed: {e!s}")
             raise HTTPException(

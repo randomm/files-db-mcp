@@ -78,13 +78,57 @@ class VectorSearch:
             import os
             cache_dir = os.environ.get("HF_HOME") or os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
             valid_params['cache_folder'] = cache_dir
-            
+        
+        # Track progress for downloading model components
+        from huggingface_hub import logging as hf_logging
+        
+        # Create handler for tracking download progress
+        class ProgressHandler(hf_logging.ProgressCallback):
+            def __init__(self):
+                super().__init__()
+                self.current_file = None
+                self.progress = {}
+                
+            def on_download(self, filename: str, chunk_size: int, chunk_index: int, total_size: int):
+                file_display_name = filename.split('/')[-1]
+                self.current_file = file_display_name
+                
+                if not total_size:
+                    # If total size is unknown, just log each chunk
+                    logger.info(f"Downloading {file_display_name}: chunk {chunk_index}")
+                    return
+                
+                # Calculate progress percentage
+                downloaded = chunk_index * chunk_size
+                percentage = min(100, int(downloaded * 100 / total_size))
+                
+                # Update progress
+                if percentage % 10 == 0 and (file_display_name not in self.progress or self.progress[file_display_name] < percentage):
+                    self.progress[file_display_name] = percentage
+                    logger.info(f"Downloading {file_display_name}: {percentage}% ({downloaded//1024}KB / {total_size//1024}KB)")
+                
+        # Register progress handler
+        progress_handler = ProgressHandler()
+        hf_logging.callback_registry.register_callback(progress_handler)
+        
+        # Log start of model loading
+        logger.info(f"Starting to load model: {model_name}")
+        logger.info("Large models may take several minutes to download on first run")
+        
         # Load model with appropriate configuration
-        return SentenceTransformer(
+        model = SentenceTransformer(
             model_name,
             device=device,
             **valid_params,
         )
+        
+        # Unregister progress handler after loading
+        hf_logging.callback_registry.unregister_callback(progress_handler)
+        
+        # Log final message
+        logger.info(f"Model {model_name} loaded successfully")
+        
+        return model
 
     def _initialize_collection(self):
         """Initialize vector collection"""
@@ -220,6 +264,110 @@ class VectorSearch:
         except Exception as e:
             logger.error(f"Error indexing file {file_path}: {e!s}")
             return False
+            
+    def batch_index_files(self, file_paths: List[str], contents: List[str], additional_metadata_list: Optional[List[Dict[str, Any]]] = None) -> List[bool]:
+        """
+        Index multiple files at once in a batch operation for better performance
+        
+        Args:
+            file_paths: List of relative paths to the files
+            contents: List of file contents to index
+            additional_metadata_list: Optional list of additional metadata to store with each document
+            
+        Returns:
+            List of booleans indicating success for each file
+        """
+        if len(file_paths) != len(contents):
+            logger.error("Mismatch between number of file paths and contents")
+            return [False] * max(len(file_paths), len(contents))
+            
+        if additional_metadata_list and len(file_paths) != len(additional_metadata_list):
+            logger.error("Mismatch between number of file paths and metadata entries")
+            return [False] * len(file_paths)
+            
+        if not file_paths:
+            return []
+            
+        try:
+            # Prepare batch points
+            points = []
+            results = [False] * len(file_paths)
+            
+            # Generate embeddings for all files
+            logger.debug(f"Generating embeddings for {len(file_paths)} files")
+            
+            # Create a function to prepare a point for upsert
+            def prepare_point(idx):
+                try:
+                    file_path = file_paths[idx]
+                    content = contents[idx]
+                    
+                    # Extract file type
+                    _, file_extension = os.path.splitext(file_path)
+                    file_type = file_extension.lstrip(".").lower() if file_extension else "unknown"
+                    
+                    # Create unique ID
+                    import hashlib
+                    point_id = hashlib.md5(file_path.encode()).hexdigest()
+                    
+                    # Generate embedding
+                    embedding = self._generate_embedding(content)
+                    
+                    # Create payload
+                    payload = {
+                        "file_path": file_path,
+                        "file_type": file_type,
+                        "content": content,
+                        "indexed_at": time.time(),
+                    }
+                    
+                    # Add additional metadata if provided
+                    if additional_metadata_list:
+                        additional_metadata = additional_metadata_list[idx]
+                        for key, value in additional_metadata.items():
+                            if key not in payload:
+                                payload[key] = value
+                            else:
+                                payload[f"meta_{key}"] = value
+                    
+                    # Create point
+                    point = models.PointStruct(
+                        id=point_id,
+                        vector=embedding,
+                        payload=payload,
+                    )
+                    
+                    results[idx] = True
+                    return point
+                except Exception as e:
+                    logger.error(f"Error preparing point for {file_paths[idx]}: {e!s}")
+                    return None
+            
+            # Process all files in parallel with ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(8, len(file_paths))) as executor:
+                # Map function to process all indexes
+                point_results = list(executor.map(prepare_point, range(len(file_paths))))
+                
+                # Filter out None results
+                points = [p for p in point_results if p is not None]
+            
+            # Only proceed if we have valid points
+            if points:
+                # Batch upsert all points at once
+                self.client.upsert(
+                    collection_name=self.collection_name,
+                    points=points,
+                    wait=True
+                )
+                
+                logger.debug(f"Batch indexed {len(points)} files successfully")
+            else:
+                logger.warning("No valid points to index in batch")
+                
+            return results
+        except Exception as e:
+            logger.error(f"Error in batch indexing: {e!s}")
+            return [False] * len(file_paths)
 
     def delete_file(self, file_path: str) -> bool:
         """

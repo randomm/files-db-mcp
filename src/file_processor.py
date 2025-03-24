@@ -34,6 +34,9 @@ class FileProcessor:
         self.total_files = 0
         self.last_indexed_files: Set[str] = set()
         
+        # Performance metrics
+        self.last_batch_speed = 0.0
+        
         # Enhanced file tracking: file path -> {hash, mtime, size}
         self.file_metadata: Dict[str, Dict[str, any]] = {}
 
@@ -320,23 +323,107 @@ class FileProcessor:
             
             self.files_indexed = 0
 
-            # Process files in parallel
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                for success in tqdm(
-                    executor.map(self.process_file, file_list),
-                    total=len(file_list),
-                    desc="Indexing files",
-                ):
-                    if success:
-                        self.files_indexed += 1
-
-                        # Report progress every 5% or 10 files, whichever is less frequent
-                        report_frequency = max(1, min(int(len(file_list) * 0.05), 10))
-                        if self.files_indexed % report_frequency == 0:
-                            progress_pct = (self.files_indexed / len(file_list) * 100) if file_list else 100.0
-                            logger.info(
-                                f"Indexing progress: {self.files_indexed}/{len(file_list)} files ({progress_pct:.1f}%)"
-                            )
+            # Process files in optimized batches
+            max_batch_size = 50  # Define maximum batch size for each batch operation
+            batch_workers = 8  # Use more worker threads for processing
+            
+            # Break down the file list into batches
+            batches = [file_list[i:i + max_batch_size] for i in range(0, len(file_list), max_batch_size)]
+            logger.info(f"Processing {len(file_list)} files in {len(batches)} batches of maximum {max_batch_size} files")
+            
+            # Process each batch with multiple workers
+            batch_processed = 0
+            for batch in tqdm(batches, desc="Indexing batches"):
+                batch_files = []
+                batch_contents = []
+                batch_metadata = []
+                
+                # First, read all files in the batch in parallel
+                with ThreadPoolExecutor(max_workers=batch_workers) as executor:
+                    # Map function to process files in parallel
+                    def read_file(rel_path):
+                        try:
+                            file_path = os.path.join(self.project_path, rel_path)
+                            
+                            # Check if file exists and is readable
+                            if not os.path.isfile(file_path) or not os.access(file_path, os.R_OK):
+                                logger.warning(f"File {rel_path} is not accessible")
+                                return None
+                                
+                            # Get file metadata
+                            mtime, size, file_hash = self.get_file_stats(file_path)
+                            
+                            # Read file content
+                            try:
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                            except UnicodeDecodeError:
+                                # Skip binary files
+                                logger.warning(f"File {rel_path} appears to be binary, skipping content extraction")
+                                content = f"[Binary file: {rel_path}]"
+                            
+                            # Simple content chunking for large files
+                            if len(content) > 5000:
+                                logger.debug(f"File {rel_path} is large ({len(content)} chars), truncating for indexing")
+                                content = content[:5000] + f"\n\n[Truncated: file is {len(content)} characters]"
+                            
+                            # Prepare metadata
+                            metadata = {
+                                "mtime": mtime,
+                                "size": size,
+                                "hash": file_hash,
+                                "indexed_at": time.time()
+                            }
+                            
+                            return (rel_path, content, metadata)
+                        except Exception as e:
+                            logger.error(f"Error reading file {rel_path}: {e!s}")
+                            return None
+                    
+                    # Process all files in batch
+                    results = list(executor.map(read_file, batch))
+                    
+                    # Filter out None results and prepare batch data
+                    for result in results:
+                        if result:
+                            rel_path, content, metadata = result
+                            batch_files.append(rel_path)
+                            batch_contents.append(content)
+                            batch_metadata.append(metadata)
+                
+                # Now process all files in a single batch operation if any valid files exist
+                if batch_files:
+                    try:
+                        # Use the new batch indexing functionality for maximum performance
+                        batch_start_time = time.time()
+                        logger.info(f"Processing batch {batch_processed+1}/{len(batches)} with {len(batch_files)} files")
+                        
+                        # Use the batch index method instead of individual indexing
+                        success_list = self.vector_search.batch_index_files(batch_files, batch_contents, batch_metadata)
+                        
+                        # Update tracking variables based on success list
+                        for i, (success, rel_path, metadata) in enumerate(zip(success_list, batch_files, batch_metadata)):
+                            if success:
+                                self.files_indexed += 1
+                                self.last_indexed_files.add(rel_path)
+                                self.file_metadata[rel_path] = metadata
+                        
+                        batch_processed += 1
+                        batch_time = time.time() - batch_start_time
+                        files_per_sec = len(batch_files) / batch_time if batch_time > 0 else 0
+                        
+                        # Store the batch speed for the health endpoint
+                        self.last_batch_speed = files_per_sec
+                        
+                        # Report progress after each batch
+                        files_processed = min(self.files_indexed, len(file_list))
+                        progress_pct = (files_processed / len(file_list) * 100) if file_list else 100.0
+                        logger.info(
+                            f"Indexing progress: {files_processed}/{len(file_list)} files ({progress_pct:.1f}%), "
+                            f"batch {batch_processed}/{len(batches)}, speed: {files_per_sec:.2f} files/sec"
+                        )
+                    except Exception as e:
+                        logger.error(f"Error processing batch: {e!s}")
 
             # Save state after indexing
             self.save_state()
