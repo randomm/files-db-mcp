@@ -68,8 +68,16 @@ class VectorSearch:
         # Extract valid parameters for SentenceTransformer constructor
         # Only 'device' and 'cache_folder' are valid for the constructor
         valid_params = {}
+        
+        # Set a default cache folder to ensure models are persisted across restarts
+        # This should be mounted as a volume in Docker
         if 'cache_folder' in self.model_config:
             valid_params['cache_folder'] = self.model_config['cache_folder']
+        else:
+            # Use the default HuggingFace cache location which we mount as a volume
+            import os
+            cache_dir = os.environ.get("HF_HOME") or os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
+            valid_params['cache_folder'] = cache_dir
             
         # Load model with appropriate configuration
         return SentenceTransformer(

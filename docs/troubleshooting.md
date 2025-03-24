@@ -69,10 +69,11 @@ This guide helps you diagnose and solve common issues with Files-DB-MCP.
 3. **Health Check Configuration:** Check the health check timeout in `docker-compose.yml`
 
 **Solutions:**
-- Be patient during first startup - subsequent starts will be much faster
+- Be patient during first startup - subsequent starts will be much faster thanks to model caching
 - Increase health check start_period in docker-compose.yml to 600s or more
 - Increase timeout in scripts/run.sh to 600 seconds or more
 - Switch to a smaller embedding model by setting EMBEDDING_MODEL environment variable
+- Check that you have the `model_cache` volume created: `docker volume ls | grep model_cache`
 
 ## Docker Compose Issues
 
@@ -159,6 +160,36 @@ This guide helps you diagnose and solve common issues with Files-DB-MCP.
 - Ensure service is running with correct port mapping
 - Check for URL path typos (e.g., `/mcp` vs `/api/mcp`)
 - Verify service is binding to the correct address (`0.0.0.0` for Docker)
+
+### Model Cache Issues
+
+**Symptoms:**
+- Models are re-downloaded every time the container starts
+- Long startup times on every run, not just the first time
+- Error message about model cache volume 
+
+**Check:**
+1. **Docker Volumes:**
+   ```bash
+   docker volume ls | grep model_cache
+   ```
+
+2. **Cache Content:**
+   ```bash
+   # Run this command to check what's in the cache
+   docker run --rm -v model_cache:/cache alpine ls -la /cache
+   ```
+
+3. **Cache Size:**
+   ```bash
+   docker system df -v | grep model_cache
+   ```
+
+**Solutions:**
+- Ensure the `model_cache` volume exists (it should be created automatically)
+- If the volume is missing or corrupted, you can recreate it: `docker volume create model_cache`
+- Make sure your docker-compose.yml includes the volume configuration
+- For persistent caching across container rebuilds, ensure the cache volume is not being pruned
 
 ## Search and Indexing Issues
 

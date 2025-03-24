@@ -62,7 +62,7 @@ On first run, Files-DB-MCP will download embedding models which may take several
 - The size of the selected model (300-500MB for high-quality models)
 - Your internet connection speed
 
-Subsequent startups will be much faster as models are cached. For faster initial startup, you can:
+Subsequent startups will be much faster as models are cached in a persistent Docker volume. For faster initial startup, you can:
 ```bash
 # Use a smaller, faster model (90MB)
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 files-db-mcp
@@ -70,6 +70,15 @@ EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 files-db-mcp
 # Or enable fast startup mode
 FAST_STARTUP=true files-db-mcp
 ```
+
+### Model Caching
+
+Files-DB-MCP automatically persists downloaded embedding models, so you only need to download them once:
+
+- Models are stored in a Docker volume called `model_cache`
+- This volume persists between container restarts and across different projects
+- The cache is shared for all projects using Files-DB-MCP on your machine
+- You don't need to download the model again for each project
 
 ## Claude Code Integration
 

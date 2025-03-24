@@ -18,6 +18,7 @@ services:
     volumes:
       - ${PROJECT_DIR:-./}:/project:ro  # Mount the project directory read-only
       - app_data:/app/data              # For persistent application data
+      - model_cache:/root/.cache/huggingface/hub  # Persist model cache between container restarts
     environment:
       - VECTOR_DB_HOST=vector-db
       - VECTOR_DB_PORT=6333
@@ -43,3 +44,4 @@ services:
 volumes:
   qdrant_data:
   app_data:
+  model_cache:  # Persistent storage for downloaded models
