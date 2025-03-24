@@ -12,6 +12,21 @@ The Model Context Protocol (MCP) enables standardized communication between AI m
 
 This makes Claude significantly more effective at understanding and working with your codebase.
 
+### Architecture
+
+The Files-DB-MCP system consists of two main components:
+
+1. **Vector Database (Qdrant)**: Stores and indexes the embeddings of your code files
+2. **MCP Interface Service**: Processes files, generates embeddings, and exposes an API for Claude
+
+When integrated with Claude, the architecture works like this:
+
+```
+Claude Code CLI/Desktop → MCP Server (port 3000) → Vector Database (port 6333)
+```
+
+The Claude MCP client never connects directly to the vector database - it always communicates through our MCP interface service running on port 3000.
+
 ## Setting Up the Integration
 
 ### Prerequisites
@@ -28,13 +43,13 @@ Add the following to your `claude_desktop_config.json` file:
   "mcpServers": {
     "files-db-mcp": {
       "command": "python",
-      "args": ["/path/to/src/claude_mcp_server.py", "--host", "localhost", "--port", "6333"]
+      "args": ["/path/to/src/claude_mcp_server.py", "--host", "localhost", "--port", "3000"]
     }
   }
 }
 ```
 
-If you're running Files-DB-MCP in Docker, ensure you map the necessary ports from the container to your host machine.
+Note that we connect to port 3000, which is the MCP interface port that's exposed by our Docker container.
 
 ### Claude Code CLI Configuration
 
@@ -45,7 +60,20 @@ If you're using Claude Code CLI, add the following to your configuration:
   "mcpTools": [
     {
       "name": "files-db-mcp",
-      "command": "python /path/to/src/claude_mcp_server.py --host localhost --port 6333"
+      "command": "python /path/to/src/claude_mcp_server.py --host localhost --port 3000"
+    }
+  ]
+}
+```
+
+For installations using the default setup script, you can use:
+
+```json
+{
+  "mcpTools": [
+    {
+      "name": "files-db-mcp",
+      "command": "python ~/.files-db-mcp/src/claude_mcp_server.py --host localhost --port 3000"
     }
   ]
 }
@@ -103,20 +131,52 @@ Returns information about the current embedding model:
 
 ## Troubleshooting
 
+### Architecture and Port Configuration
+
+Understanding the architecture and port configuration is important for troubleshooting:
+
+- **Vector Database (Qdrant)**: Runs on port 6333 inside the container, mapped to host port 6333
+- **MCP Interface**: Runs on port 8000 inside the container, mapped to host port 3000
+- **Claude MCP Client**: Connects to the MCP Interface on port 3000, not directly to the vector database
+
 ### Common Issues
 
-1. **Connection refused**: Make sure Files-DB-MCP is running and the ports are correctly mapped
+1. **"Connection closed" error**: 
+   - Make sure you're connecting to port 3000 (not 6333)
+   - Check if Files-DB-MCP is running with `docker ps`
+   - Verify the MCP interface is healthy with `curl http://localhost:3000/health`
 
-2. **Tool not showing up**: Restart Claude Desktop after modifying the configuration
+2. **Connection refused error**: 
+   - Make sure Files-DB-MCP is running and the ports are correctly mapped
+   - Check if there's a port conflict on your system
 
-3. **Search returning no results**: Ensure your codebase has been properly indexed
+3. **Tool not showing up in Claude**: 
+   - Restart Claude Desktop/CLI after modifying the MCP configuration
+   - Make sure you've enabled the tool in your Claude session
 
-### Logs
+4. **Search returning no results**: 
+   - Ensure your codebase has been properly indexed
+   - Check indexing status with `curl http://localhost:3000/health`
+   - Verify the project path in your docker-compose configuration
 
-Check the following logs for troubleshooting:
+### Logs and Diagnostics
 
-- Files-DB-MCP logs: `docker-compose logs files-db-mcp`
-- Claude Desktop logs: Check the Claude Desktop application logs
+For troubleshooting, check these logs:
+
+- Files-DB-MCP service logs: `docker logs files-db-mcp-files-db-mcp-1`
+- Vector database logs: `docker logs files-db-mcp-vector-db-1`
+- Overall system logs: `docker-compose logs`
+- Check Claude MCP status: `claude --mcp-debug`
+
+You can also test the MCP connection directly:
+
+```bash
+# Test health endpoint
+curl http://localhost:3000/health
+
+# Test search functionality directly
+curl -X POST http://localhost:3000/mcp -H "Content-Type: application/json" -d '{"function":"vector_search","parameters":{"query":"test","limit":5}}'
+```
 
 ## Future Improvements
 
