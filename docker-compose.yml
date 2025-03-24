@@ -21,7 +21,10 @@ services:
     environment:
       - VECTOR_DB_HOST=vector-db
       - VECTOR_DB_PORT=6333
-      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2  # Default code embedding model
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}  # Default code embedding model
+      # For faster startup, you can set EMBEDDING_MODEL to a smaller model: 
+      # Example: export EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - FAST_STARTUP=${FAST_STARTUP:-false}                     # Set to 'true' to prioritize faster startup over quality 
       - QUANTIZATION=true                                       # Enable quantization by default
       - BINARY_EMBEDDINGS=false                                 # Disable binary embeddings by default
       - DEBUG=true                                              # Enable debug mode
@@ -33,9 +36,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 20s
-      retries: 5
-      start_period: 180s  # Give more time for model downloads
+      timeout: 30s
+      retries: 10
+      start_period: 600s  # Give much more time for large model downloads
 
 volumes:
   qdrant_data:

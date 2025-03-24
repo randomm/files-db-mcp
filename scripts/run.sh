@@ -71,6 +71,8 @@ COMPOSE_HTTP_TIMEOUT=300 docker compose -f "$BASE_DIR/docker-compose.yml" up --b
 echo 
 echo "Files-DB-MCP is starting up..."
 echo "Waiting for services to initialize..."
+echo "Note: First run requires downloading embedding models (~300-500MB) which may take several minutes."
+echo "      Future startups will be much faster as models are cached."
 
 # Get the actual container names as they might be different
 MCP_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q files-db-mcp)
@@ -78,9 +80,9 @@ VECTOR_DB_CONTAINER=$(docker compose -f "$BASE_DIR/docker-compose.yml" ps -q vec
 
 echo "Container IDs: MCP=$MCP_CONTAINER, Vector DB=$VECTOR_DB_CONTAINER"
 
-# Wait up to 2 minutes for MCP to become healthy
-timeout=120
-interval=5
+# Wait up to 10 minutes for MCP to become healthy (especially for first-time model downloads)
+timeout=600
+interval=10
 elapsed=0
 
 echo "Waiting for MCP service to become healthy..."

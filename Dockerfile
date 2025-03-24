@@ -25,7 +25,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
+# Note: First run will download large embedding models which can take several minutes
+# The run.sh script handles this with a longer timeout, but Docker health checks need to be configured too
+HEALTHCHECK --interval=30s --timeout=30s --start-period=600s --retries=10 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run when container starts

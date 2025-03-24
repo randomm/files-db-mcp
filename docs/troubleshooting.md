@@ -42,24 +42,37 @@ This guide helps you diagnose and solve common issues with Files-DB-MCP.
 - Ensure vector database is running and accessible
 - Check environment variables are properly set
 
-### Health Check Fails
+### Health Check Fails or Long Startup Time
 
 **Symptoms:**
-- Container shows "unhealthy" status
-- Service starts but health check fails
+- Container shows "unhealthy" status or "starting" for a long time
+- Timeout message: "Timeout waiting for MCP service to become healthy"
+- First run takes much longer than expected
+
+**Causes:**
+- First startup requires downloading large embedding models (300-500MB)
+- Default timeout may be too short for large model downloads
+- Slow internet connection can extend download time
 
 **Check:**
-1. **Health Check Response:**
+1. **Container Logs for Download Progress:**
+   ```bash
+   docker logs files-db-mcp-files-db-mcp-1
+   ```
+   Look for "Downloading model.safetensors" progress messages.
+
+2. **Health Check Response:**
    ```bash
    curl http://localhost:3000/health
    ```
 
-2. **Health Check Configuration:** Check the health check timeout in `docker-compose.yml`
+3. **Health Check Configuration:** Check the health check timeout in `docker-compose.yml`
 
 **Solutions:**
-- Increase health check timeout for model loading
-- Check if the vector database is properly connected
-- Verify network settings between containers
+- Be patient during first startup - subsequent starts will be much faster
+- Increase health check start_period in docker-compose.yml to 600s or more
+- Increase timeout in scripts/run.sh to 600 seconds or more
+- Switch to a smaller embedding model by setting EMBEDDING_MODEL environment variable
 
 ## Docker Compose Issues
 

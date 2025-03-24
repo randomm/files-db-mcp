@@ -312,8 +312,22 @@ class ProjectInitializer:
         Returns:
             Tuple of (model_name, model_config)
         """
-        # Check if we have a custom config
-        if self.config_file.exists():
+        # First check environment variable for FAST_STARTUP mode
+        fast_startup = os.environ.get("FAST_STARTUP", "false").lower() == "true"
+        
+        # Check if embedding model is explicitly set in environment
+        env_model = os.environ.get("EMBEDDING_MODEL")
+        if env_model:
+            logger.info(f"Using embedding model from environment: {env_model}")
+            self.embedding_model = env_model
+            # Keep default config but allow overrides from config file
+            if self.primary_project_type in DEFAULT_MODEL_CONFIGS:
+                self.model_config = DEFAULT_MODEL_CONFIGS[self.primary_project_type].copy()
+            else:
+                self.model_config = DEFAULT_MODEL_CONFIGS["default"].copy()
+                
+        # Check if we have a custom config file
+        elif self.config_file.exists():
             try:
                 with open(self.config_file, "r") as f:
                     config = json.load(f)
@@ -327,8 +341,14 @@ class ProjectInitializer:
             except Exception as e:
                 logger.warning(f"Error reading config file: {e!s}")
         
-        # Use default model for the primary project type
-        if self.primary_project_type in DEFAULT_EMBEDDING_MODELS:
+        # If fast startup is requested, use the smallest model
+        elif fast_startup:
+            logger.info("FAST_STARTUP is enabled, using lightweight embedding model")
+            self.embedding_model = "sentence-transformers/all-MiniLM-L6-v2"  # Smallest model ~90MB
+            self.model_config = DEFAULT_MODEL_CONFIGS["default"].copy()
+            
+        # Otherwise use default model for the primary project type
+        elif self.primary_project_type in DEFAULT_EMBEDDING_MODELS:
             self.embedding_model = DEFAULT_EMBEDDING_MODELS[self.primary_project_type]
             self.model_config = DEFAULT_MODEL_CONFIGS[self.primary_project_type].copy()
         else:

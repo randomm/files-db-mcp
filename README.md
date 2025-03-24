@@ -50,10 +50,26 @@ The service will:
 
 Files-DB-MCP works without configuration, but you can customize it with environment variables:
 
-- `EMBEDDING_MODEL` - Change the embedding model (default: 'sentence-transformers/all-MiniLM-L6-v2')
+- `EMBEDDING_MODEL` - Change the embedding model (default: 'jinaai/jina-embeddings-v2-base-code' or project-specific model)
+- `FAST_STARTUP` - Set to 'true' to use a smaller model for faster startup (default: 'false')
 - `QUANTIZATION` - Enable/disable quantization (default: 'true')
 - `BINARY_EMBEDDINGS` - Enable/disable binary embeddings (default: 'false')
 - `IGNORE_PATTERNS` - Comma-separated list of files/dirs to ignore
+
+### First-Time Startup
+
+On first run, Files-DB-MCP will download embedding models which may take several minutes depending on:
+- The size of the selected model (300-500MB for high-quality models)
+- Your internet connection speed
+
+Subsequent startups will be much faster as models are cached. For faster initial startup, you can:
+```bash
+# Use a smaller, faster model (90MB)
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 files-db-mcp
+
+# Or enable fast startup mode
+FAST_STARTUP=true files-db-mcp
+```
 
 ## Claude Code Integration
 
