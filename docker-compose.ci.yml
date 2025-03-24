@@ -15,10 +15,16 @@ services:
   files-db-mcp:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     depends_on:
       vector-db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 600s  # Give time for model downloads
     environment:
       - VECTOR_DB_HOST=vector-db
       - VECTOR_DB_PORT=6333
@@ -28,14 +34,19 @@ services:
       - DEBUG=false
       - PROJECT_PATH=/test-project
       - IGNORE_PATTERNS=.git,node_modules,__pycache__,venv,dist,build,*.pyc
+      - PORT=8000
+      - FAST_STARTUP=true
+    ports:
+      - "3000:8000"  # Map container port 8000 to host port 3000
     volumes:
       - ./tests/fixtures/project:/test-project:ro
       - app_data:/app/data
+      - model_cache:/root/.cache/huggingface/hub
 
   tests:
     build:
       context: .
-      dockerfile: Dockerfile.test
+      dockerfile: ./Dockerfile.test
     depends_on:
       files-db-mcp:
         condition: service_healthy
@@ -52,3 +63,4 @@ services:
 volumes:
   qdrant_data:
   app_data:
+  model_cache:
