@@ -50,7 +50,7 @@ if command -v git >/dev/null 2>&1; then
         git pull
     else
         echo "Cloning repository..."
-        git clone https://github.com/yourusername/files-db-mcp.git "$INSTALL_DIR"
+        git clone https://github.com/randomm/files-db-mcp.git "$INSTALL_DIR"
     fi
 else
     # Option 2: Download zip file (placeholder)

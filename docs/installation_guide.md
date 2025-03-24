@@ -26,7 +26,7 @@ The Docker Compose installation is the simplest and most reliable way to run Fil
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/files-db-mcp.git
+git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Start the services
@@ -58,7 +58,7 @@ Files-DB-MCP can be installed as a global CLI tool for easy access from any proj
 pip install files-db-mcp
 
 # Or install the development version
-pip install git+https://github.com/yourusername/files-db-mcp.git
+pip install git+https://github.com/randomm/files-db-mcp.git
 ```
 
 ### Usage
@@ -97,7 +97,7 @@ For advanced users who want to install from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/files-db-mcp.git
+git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Create and activate a virtual environment
@@ -117,7 +117,7 @@ For developers who want to contribute to Files-DB-MCP:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/files-db-mcp.git
+git clone https://github.com/randomm/files-db-mcp.git
 cd files-db-mcp
 
 # Create and activate a virtual environment

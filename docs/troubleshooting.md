@@ -345,7 +345,7 @@ python test_search.py
 
 If you're still experiencing problems:
 
-1. Check the [GitHub Issues](https://github.com/yourusername/files-db-mcp/issues) for similar reports
+1. Check the [GitHub Issues](https://github.com/randomm/files-db-mcp/issues) for similar reports
 2. Enable DEBUG logging in your configuration
 3. Create a detailed bug report including:
    - Steps to reproduce

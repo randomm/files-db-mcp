@@ -19,7 +19,7 @@ Files-DB-MCP is a local vector database system that provides LLM coding agents w
 ### One-Line Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/files-db-mcp/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/randomm/files-db-mcp/main/install.sh | bash
 ```
 
 ### Usage
@@ -46,7 +46,7 @@ If you prefer to install manually:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/files-db-mcp.git
+   git clone https://github.com/randomm/files-db-mcp.git
    ```
 
 2. Navigate to a project directory and run:
