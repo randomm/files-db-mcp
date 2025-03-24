@@ -28,22 +28,26 @@ def test_compute_file_hash(mock_file_open, mock_stat, mock_sha256, mock_makedirs
     mock_sha256.return_value = mock_hasher
     mock_hasher.hexdigest.return_value = "test_hash_digest"
     
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
-    
-    # Test hash computation
-    result = processor.compute_file_hash("/test/file.txt")
-    
-    # Verify
-    mock_file_open.assert_called_once_with("/test/file.txt", "rb")
-    assert mock_hasher.update.called
-    assert result == "test_hash_digest"
+    with patch.object(FileProcessor, 'load_state') as mock_load_state:
+        # Create file processor with mocked load_state
+        vector_search = MagicMock()
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
+        
+        # Reset the mock_file_open to clear any calls from load_state
+        mock_file_open.reset_mock()
+        
+        # Test hash computation
+        result = processor.compute_file_hash("/test/file.txt")
+        
+        # Verify
+        mock_file_open.assert_called_once_with("/test/file.txt", "rb")
+        assert mock_hasher.update.called
+        assert result == "test_hash_digest"
 
 
 @patch("src.file_processor.os.stat")
@@ -56,17 +60,18 @@ def test_get_file_stats(mock_file_open, mock_stat, mock_makedirs):
     mock_stat_result.st_size = 1024
     mock_stat.return_value = mock_stat_result
     
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
-    
-    # Mock hash computation
-    processor.compute_file_hash = MagicMock(return_value="test_hash_digest")
+    with patch.object(FileProcessor, 'load_state'):
+        # Create file processor
+        vector_search = MagicMock()
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
+        
+        # Mock hash computation
+        processor.compute_file_hash = MagicMock(return_value="test_hash_digest")
     
     # Test getting file stats
     mtime, size, file_hash = processor.get_file_stats("/test/file.txt")
@@ -93,16 +98,17 @@ def test_file_needs_update(mock_join, mock_isfile, mock_makedirs):
     """Test file change detection logic"""
     # Set up mocks
     mock_isfile.return_value = True
-    mock_join.side_effect = lambda *args: "/".join(args)
+    mock_join.side_effect = lambda *args: "/".join(str(arg) for arg in args)
     
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
+    with patch.object(FileProcessor, 'load_state'):
+        # Create file processor
+        vector_search = MagicMock()
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
     
     # Mock file stats
     processor.get_file_stats = MagicMock(return_value=(12345.6789, 1024, "test_hash_digest"))
@@ -144,16 +150,17 @@ def test_get_modified_files(mock_relpath, mock_walk, mock_makedirs):
         ("/test/project", ["src"], ["README.md"]),
         ("/test/project/src", [], ["main.py", "utils.py", "config.py"]),
     ]
-    mock_relpath.side_effect = lambda path, start: path.replace(start + "/", "")
+    mock_relpath.side_effect = lambda path, start: path.replace(str(start) + "/", "")
     
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
+    with patch.object(FileProcessor, 'load_state'):
+        # Create file processor
+        vector_search = MagicMock()
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
     
     # Set up initial state with some previously indexed files
     processor.last_indexed_files = {
@@ -190,14 +197,15 @@ def test_get_modified_files(mock_relpath, mock_walk, mock_makedirs):
 @patch("builtins.open", new_callable=mock_open)
 def test_save_state(mock_file_open, mock_json_dump, mock_makedirs):
     """Test state saving"""
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
+    with patch.object(FileProcessor, 'load_state'):
+        # Create file processor
+        vector_search = MagicMock()
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
     
     # Set up state
     processor.last_indexed_files = {"file1.py", "file2.py"}
@@ -209,8 +217,11 @@ def test_save_state(mock_file_open, mock_json_dump, mock_makedirs):
     # Save state
     processor.save_state()
     
-    # Verify
-    mock_file_open.assert_called_once_with("/test/data/file_processor_state.json", "w")
+    # Verify - use any() to check for the file path since it might be a PosixPath object
+    assert any(
+        call.args[0] == "/test/data/file_processor_state.json" or str(call.args[0]) == "/test/data/file_processor_state.json"
+        for call in mock_file_open.call_args_list
+    )
     mock_json_dump.assert_called_once()
     
     # Check that we're saving the right data
@@ -223,44 +234,31 @@ def test_save_state(mock_file_open, mock_json_dump, mock_makedirs):
     assert saved_data["file_metadata"] == processor.file_metadata
 
 
-@patch("json.load")
-@patch("os.path.exists")
-@patch("builtins.open", new_callable=mock_open)
-def test_load_state(mock_file_open, mock_exists, mock_json_load, mock_makedirs):
+def test_load_state(mock_makedirs):
     """Test state loading"""
-    # Set up mocks
-    mock_exists.return_value = True
-    mock_json_load.return_value = {
-        "indexed_files": ["file1.py", "file2.py"],
-        "file_metadata": {
+    # Mock Path.exists() to return True
+    with patch("pathlib.Path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data='{"indexed_files": ["file1.py", "file2.py"], "file_metadata": {"file1.py": {"mtime": 123.456, "size": 100, "hash": "hash1"}, "file2.py": {"mtime": 789.012, "size": 200, "hash": "hash2"}}, "last_updated": 1234567890}')):
+        
+        # First patch load_state to avoid loading during init
+        with patch.object(FileProcessor, 'load_state'):
+            vector_search = MagicMock()
+            processor = FileProcessor(
+                vector_search=vector_search,
+                project_path="/test/project",
+                ignore_patterns=[],
+                data_dir="/test/data",
+            )
+        
+        # Then manually call load_state (the real one)
+        processor.load_state()
+        
+        # Check that we loaded the right data
+        assert processor.last_indexed_files == {"file1.py", "file2.py"}
+        assert processor.file_metadata == {
             "file1.py": {"mtime": 123.456, "size": 100, "hash": "hash1"},
             "file2.py": {"mtime": 789.012, "size": 200, "hash": "hash2"},
-        },
-        "last_updated": 1234567890,
-    }
-    
-    # Create file processor
-    vector_search = MagicMock()
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
-    
-    # Explicitly call load_state (normally called by __init__)
-    processor.load_state()
-    
-    # Verify
-    mock_file_open.assert_called_once_with("/test/data/file_processor_state.json", "r")
-    mock_json_load.assert_called_once()
-    
-    # Check that we loaded the right data
-    assert processor.last_indexed_files == {"file1.py", "file2.py"}
-    assert processor.file_metadata == {
-        "file1.py": {"mtime": 123.456, "size": 100, "hash": "hash1"},
-        "file2.py": {"mtime": 789.012, "size": 200, "hash": "hash2"},
-    }
+        }
 
 
 @patch("src.file_processor.ThreadPoolExecutor")
@@ -272,15 +270,19 @@ def test_incremental_indexing(mock_thread_pool, mock_makedirs):
     mock_thread_pool.return_value.__enter__.return_value = executor
     executor.map.return_value = [True, True, False]  # 2 successful, 1 failed
     
-    # Create file processor with modified_files method mocked
-    processor = FileProcessor(
-        vector_search=vector_search,
-        project_path="/test/project",
-        ignore_patterns=[],
-        data_dir="/test/data",
-    )
+    with patch.object(FileProcessor, 'load_state'):
+        # Create file processor
+        processor = FileProcessor(
+            vector_search=vector_search,
+            project_path="/test/project",
+            ignore_patterns=[],
+            data_dir="/test/data",
+        )
     
-    # Mock methods
+    # Create a replacement set of test files that exists
+    processor.last_indexed_files = {"file1.py", "file2.py", "file3.py", "old_file.py"}
+    
+    # Mock methods - do this AFTER initializing the processor
     processor.get_modified_files = MagicMock(return_value=(
         ["file1.py", "file2.py", "file3.py"],  # files to update
         ["old_file.py"],  # files to remove

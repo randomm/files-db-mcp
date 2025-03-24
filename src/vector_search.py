@@ -132,13 +132,20 @@ class VectorSearch:
 
         # Use appropriate encoding parameters based on model configuration
         normalize = self.model_config.get("normalize_embeddings", True)
-        return self.model.encode(
+        embedding = self.model.encode(
             text,
             batch_size=batch_size,
             normalize_embeddings=normalize,
             convert_to_tensor=False,
             show_progress_bar=False,
-        ).tolist()
+        )
+        
+        # Handle both numpy arrays and regular lists (for mocking in tests)
+        if hasattr(embedding, 'tolist'):
+            return embedding.tolist()
+        else:
+            # If it's already a list (e.g., in tests), return it as is
+            return embedding
 
     def index_file(self, file_path: str, content: str, additional_metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
