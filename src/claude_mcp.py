@@ -52,11 +52,18 @@ class ClaudeMCP:
         try:
             # Send hello message
             self._send_hello()
+            logger.info("Sent hello message to MCP client")
             
             # Process incoming messages
+            logger.info("Waiting for incoming messages from MCP client...")
+            
             for line in self.stdin:
-                if not line.strip():
+                line = line.strip()
+                if not line:
+                    logger.debug("Received empty line, continuing")
                     continue
+                    
+                logger.info(f"Received message: {line[:100]}...")
                     
                 try:
                     message = json.loads(line)
@@ -65,21 +72,29 @@ class ClaudeMCP:
                     if message_type == MESSAGE_TYPE_READY:
                         logger.info("MCP client is ready")
                     elif message_type == MESSAGE_TYPE_TOOL_CALL:
+                        logger.info(f"Handling tool call: {message.get('tool', {}).get('name')}")
                         self._handle_tool_call(message)
                     elif message_type == MESSAGE_TYPE_RESOURCE_REQUEST:
+                        logger.info(f"Handling resource request: {message.get('uri')}")
                         self._handle_resource_request(message)
                     elif message_type == MESSAGE_TYPE_PROMPT_REQUEST:
+                        logger.info(f"Handling prompt request: {message.get('prompt', {}).get('name')}")
                         self._handle_prompt_request(message)
                     elif message_type == MESSAGE_TYPE_BYE:
                         logger.info("MCP client is disconnecting")
                         break
                     else:
+                        logger.warning(f"Unknown message type: {message_type}")
                         self._send_error(f"Unknown message type: {message_type}")
                         
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON in message: {e}")
                     self._send_error("Invalid JSON in message")
                 except Exception as e:
+                    logger.error(f"Error processing message: {e}")
                     self._send_error(f"Error processing message: {e}")
+                    
+            logger.info("Message processing loop exited normally")
                     
         except KeyboardInterrupt:
             logger.info("MCP server was interrupted")
@@ -87,14 +102,21 @@ class ClaudeMCP:
             logger.error(f"MCP server error: {e}")
             self._send_error(f"Server error: {e}")
             
-        # Send goodbye message
+        # Send goodbye message only if not already sent
+        logger.info("Sending goodbye message")
         self._send_bye()
+        logger.info("MCP server shutting down")
         
     def _send_message(self, message: Dict[str, Any]):
         """Send a message to the client"""
-        json_str = json.dumps(message)
-        self.stdout.write(json_str + "\n")
-        self.stdout.flush()
+        try:
+            json_str = json.dumps(message)
+            self.stdout.write(json_str + "\n")
+            self.stdout.flush()
+            logger.debug(f"Sent message: {json_str[:100]}...")
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+            # Don't raise - we want to continue processing if possible
         
     def _send_hello(self):
         """Send hello message with server capabilities"""
