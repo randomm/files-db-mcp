@@ -43,5 +43,8 @@ services:
 
 volumes:
   qdrant_data:
+    name: files-db-mcp-qdrant-data
   app_data:
-  model_cache:  # Persistent storage for downloaded models
+    name: files-db-mcp-app-data
+  model_cache:  
+    name: files-db-mcp-model-cache  # Persistent storage for downloaded models with explicit naming

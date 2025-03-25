@@ -74,11 +74,25 @@ class VectorSearch:
         # This should be mounted as a volume in Docker
         if 'cache_folder' in self.model_config:
             valid_params['cache_folder'] = self.model_config['cache_folder']
+            logger.info(f"Using custom cache folder from config: {self.model_config['cache_folder']}")
         else:
             # Use the default HuggingFace cache location which we mount as a volume
             import os
             cache_dir = os.environ.get("HF_HOME") or os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
             valid_params['cache_folder'] = cache_dir
+            logger.info(f"Using default cache folder: {cache_dir}")
+            
+        # Ensure the cache directory exists and is writable
+        os.makedirs(valid_params['cache_folder'], exist_ok=True)
+        try:
+            test_file = os.path.join(valid_params['cache_folder'], '.write_test')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            logger.info(f"Cache directory {valid_params['cache_folder']} is writable")
+        except Exception as e:
+            logger.warning(f"Cache directory {valid_params['cache_folder']} may not be writable: {e}")
+            logger.warning("This might cause the model to be re-downloaded each time")
         
         # Track progress for downloading model components
         try:
