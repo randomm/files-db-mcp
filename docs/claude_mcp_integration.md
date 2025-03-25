@@ -79,6 +79,29 @@ For installations using the default setup script, you can use:
 }
 ```
 
+Or if you're using a `.mcp.json` file in your project root:
+
+```json
+{
+  "mcpServers": {
+    "files-db-mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "~/.files-db-mcp/src/claude_mcp_server.py",
+        "--host",
+        "localhost",
+        "--port",
+        "3000"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+**Important:** Make sure to use the full path to the `src/claude_mcp_server.py` file. The file is located in the `src` subdirectory, not directly in the `~/.files-db-mcp` directory.
+
 ## Using the Integration
 
 After setting up the integration, start a new conversation with Claude and enable the Files-DB-MCP MCP tool.
@@ -158,6 +181,12 @@ Understanding the architecture and port configuration is important for troublesh
    - Ensure your codebase has been properly indexed
    - Check indexing status with `curl http://localhost:3000/health`
    - Verify the project path in your docker-compose configuration
+   
+5. **"Connection closed" or "MCP error -32000: Connection closed"**:
+   - Verify the path to `claude_mcp_server.py` in your MCP configuration
+   - Make sure to specify the full path including the `src` directory: `~/.files-db-mcp/src/claude_mcp_server.py`
+   - Check if the file exists using `ls -la ~/.files-db-mcp/src/claude_mcp_server.py`
+   - Try running the command manually to see if it works: `python ~/.files-db-mcp/src/claude_mcp_server.py --host localhost --port 3000`
 
 ### Logs and Diagnostics
 
