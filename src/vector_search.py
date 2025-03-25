@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
@@ -80,36 +81,45 @@ class VectorSearch:
             valid_params['cache_folder'] = cache_dir
         
         # Track progress for downloading model components
-        from huggingface_hub import logging as hf_logging
-        
-        # Create handler for tracking download progress
-        class ProgressHandler(hf_logging.ProgressCallback):
-            def __init__(self):
-                super().__init__()
-                self.current_file = None
-                self.progress = {}
+        try:
+            # Try using the ProgressCallback from huggingface_hub (newer versions)
+            from huggingface_hub import logging as hf_logging
+            
+            # Check if ProgressCallback exists in this version
+            if hasattr(hf_logging, 'ProgressCallback'):
+                # Create handler for tracking download progress
+                class ProgressHandler(hf_logging.ProgressCallback):
+                    def __init__(self):
+                        super().__init__()
+                        self.current_file = None
+                        self.progress = {}
+                        
+                    def on_download(self, filename: str, chunk_size: int, chunk_index: int, total_size: int):
+                        file_display_name = filename.split('/')[-1]
+                        self.current_file = file_display_name
+                        
+                        if not total_size:
+                            # If total size is unknown, just log each chunk
+                            logger.info(f"Downloading {file_display_name}: chunk {chunk_index}")
+                            return
+                        
+                        # Calculate progress percentage
+                        downloaded = chunk_index * chunk_size
+                        percentage = min(100, int(downloaded * 100 / total_size))
+                        
+                        # Update progress
+                        if percentage % 10 == 0 and (file_display_name not in self.progress or self.progress[file_display_name] < percentage):
+                            self.progress[file_display_name] = percentage
+                            logger.info(f"Downloading {file_display_name}: {percentage}% ({downloaded//1024}KB / {total_size//1024}KB)")
                 
-            def on_download(self, filename: str, chunk_size: int, chunk_index: int, total_size: int):
-                file_display_name = filename.split('/')[-1]
-                self.current_file = file_display_name
-                
-                if not total_size:
-                    # If total size is unknown, just log each chunk
-                    logger.info(f"Downloading {file_display_name}: chunk {chunk_index}")
-                    return
-                
-                # Calculate progress percentage
-                downloaded = chunk_index * chunk_size
-                percentage = min(100, int(downloaded * 100 / total_size))
-                
-                # Update progress
-                if percentage % 10 == 0 and (file_display_name not in self.progress or self.progress[file_display_name] < percentage):
-                    self.progress[file_display_name] = percentage
-                    logger.info(f"Downloading {file_display_name}: {percentage}% ({downloaded//1024}KB / {total_size//1024}KB)")
-                
-        # Register progress handler
-        progress_handler = ProgressHandler()
-        hf_logging.callback_registry.register_callback(progress_handler)
+                # Register progress handler
+                progress_handler = ProgressHandler()
+                hf_logging.callback_registry.register_callback(progress_handler)
+                logger.info("Using progress callback for HuggingFace model downloads")
+            else:
+                logger.info("Progress callback not available in this huggingface-hub version")
+        except (ImportError, AttributeError):
+            logger.info("HuggingFace progress tracking not available, continuing without progress reporting")
         
         # Log start of model loading
         logger.info(f"Starting to load model: {model_name}")
@@ -122,8 +132,12 @@ class VectorSearch:
             **valid_params,
         )
         
-        # Unregister progress handler after loading
-        hf_logging.callback_registry.unregister_callback(progress_handler)
+        # Unregister progress handler after loading if it was registered
+        try:
+            if 'progress_handler' in locals() and hasattr(hf_logging, 'callback_registry'):
+                hf_logging.callback_registry.unregister_callback(progress_handler)
+        except Exception as e:
+            logger.debug(f"Failed to unregister progress callback: {e}")
         
         # Log final message
         logger.info(f"Model {model_name} loaded successfully")
