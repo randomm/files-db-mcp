@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/randomm-files-db-mcp-badge.png)](https://mseep.ai/app/randomm-files-db-mcp)
+
 # Files-DB-MCP: Vector Search for Code Projects
 
 A local vector database system that provides LLM coding agents with fast, efficient search capabilities for software projects via the Message Control Protocol (MCP).
